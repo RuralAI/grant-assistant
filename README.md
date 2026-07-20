@@ -1,68 +1,71 @@
 # Grant Assistant — Installer & Seed Template
 
-A repeatable, installable grant-pipeline system for nonprofits, built on Claude + Airtable. An organization fills out one seed template, runs one startup skill, and gets a working environment in about 15 minutes: an Airtable base (master model), their existing grants/funders/restrictions loaded as a deduplication baseline, and four org-tuned operating skills that discover, score, write, and audit grant opportunities.
+A grant-pipeline system for nonprofits, built on Claude + Airtable. Your organization fills out one seed document, runs one installer, and in about 15 minutes has a working system: a grants database, your existing grants and funders already loaded, and four custom Claude skills that find, evaluate, record, and log grant opportunities for you.
 
-**Status:** v0.2 — validated in production (CRAI) and in a first commercial install (Boys to Men, July 2026).
+**Status:** v0.2 — proven in production and in a first commercial installation (July 2026).
 
 ---
 
-## How it works
+## What you get after installing
 
-**Method vs. judgment.** The four generated operating skills carry *method only* — the universal loop: scan → classify → score → honest pushback → write → audit, with verify-before-scoring and flag-gaps-never-invent. Everything org-specific — stage posture, award-size bands, fit criteria, durable rules, loan posture, recurring eligibility traps, geography, voice — is *judgment*, and it lives in the org's **Org Profile** table in Airtable. Skills read it live at runtime. Install once; the org evolves its profile in Airtable and skill behavior follows without regenerating anything.
+- **A grants database in your Airtable** — every grant you're tracking, at every stage, in one place
+- **Your history preloaded** — your active grants, past awards, funder list, and any funder restrictions, so the system never re-pitches you something you already know about
+- **Four custom skills in your Claude** — one that searches for new opportunities, one that scores how well each fits *your* organization, one that records results safely, and one that keeps an honest log of every work session
+- **You stay in charge** — the system finds and recommends; a person on your team always decides what to actually pursue
 
-**The master model.** One **Grant Master** table holds every grant at every lifecycle stage; a **Stage** field (Possible / Active / Awarded / Archived / Withdrawn) carries the lifecycle. **Donor Master** mirrors it for funders. Five operator-only context tables (Active Grants, Portfolio, Archive, Active Donors, Donor Restriction Log) hold stage-specific working fields and link back to the masters. Deduplication is a single table read.
+## Quick start
 
-**The operator gate is human, permanently.** Skills create and update Grant Master rows only at Stage = Possible. A person promotes a grant by flipping its Stage and linking a working row. No staging automation exists, by design.
+**Step 1: Download this repository.**
+Click the green **Code** button at the top of this page, select **Download ZIP**, and extract the folder on your computer.
 
-## What an install produces
+**Step 2: Check prerequisites.**
+- A Claude account (Pro, Team, or Enterprise) with permission to add custom skills and connect integrations.
+- An Airtable account (Free or Paid).
 
-- An Airtable base with nine tables, built in one pass with proper record links
-- The org's portfolio, funder list, and funder restrictions ingested with honest provenance (the dedup baseline)
-- A populated Org Profile — the org's judgment layer, editable in Airtable forever after
-- Four packaged operating skills, tuned to the org's base: `<org>-prospect-scan`, `<org>-grant-scoring`, `<org>-airtable-write`, `<org>-audit-log`
-- An install audit entry recording exactly what was built and ingested
+**Step 3: Connect Airtable to Claude.**
+In Claude, connect your Airtable integration. **Important:** select **Full / Workspace Access** so Claude can automatically build your new base.
 
-## Repository layout
+**Step 4: Load the installer skill.**
+Import the installer file (`skill/grant-assistant-startup.skill`) into your Claude custom skills.
+
+**Step 5: Fill out your seed document.**
+Open `template/Org_Seed_Template_BLANK.md` and complete it — especially the 10 required fields marked with ★. Every question includes instructions and a real example.
+
+**Step 6: Run the installer.**
+Start a new thread in Claude, attach your filled-out template, and run:
+
+> Invoke the grant-assistant-startup skill and read the attached seed document for context.
+
+⏱️ **What to expect:** The setup takes about 15 minutes. Claude will build your database, import your history, and give you 4 custom operating skills when finished. One setup session uses a good portion of a day's Claude usage on a Pro plan — start it when you haven't already been using Claude heavily, and it will finish comfortably in one sitting.
+
+📖 **Full step-by-step walkthrough & troubleshooting:** see [docs/INSTALL_GUIDE.md](docs/INSTALL_GUIDE.md).
+
+## How it works (the short version)
+
+**Your judgment lives in your data, not in the software.** Everything specific to your organization — what sizes of grants fit you, what you can honestly claim, which funders to avoid, your non-negotiable rules — lives in an **Org Profile** table in your own Airtable. The skills read it every time they run. When your organization grows or changes, you edit that table, and the system's behavior follows. No reinstall.
+
+**One master list, one gatekeeper.** All grants live in one table with a **Stage** marker (Possible → Active → Awarded, or Archived). The skills may only add and update grants at the "Possible" stage. Moving a grant forward is always done by a person on your team.
+
+**Honest by design.** The system verifies opportunities against the funder's own website before scoring, flags information gaps instead of inventing facts, and ends every work session with a log entry that says what it did — and what it didn't get to.
+
+## Repository contents
 
 ```
 grant-assistant/
 ├── README.md                  ← you are here
+├── LICENSE                    ← Apache 2.0 license
+├── NOTICE                     ← copyright notice
+├── CONTRIBUTING.md            ← for the team maintaining this repo
 ├── docs/
-│   └── INSTALL_GUIDE.md       ← the comprehensive install runbook (start here)
+│   ├── INSTALL_GUIDE.md       ← the full install walkthrough (start here)
+│   └── images/                ← screenshots for the guide
 ├── skill/
-│   ├── grant-assistant-startup.skill      ← packaged installer, save into Claude
-│   └── grant-assistant-startup/           ← unpacked source (for review/maintenance)
-│       ├── SKILL.md
-│       └── assets/
-│           └── Org_Seed_Template_BLANK.md ← template bundled inside the skill
+│   ├── grant-assistant-startup.skill      ← the installer you load into Claude
+│   └── grant-assistant-startup/           ← its source, for review
 └── template/
-    └── Org_Seed_Template_BLANK.md         ← the entry form an org fills out
+    └── Org_Seed_Template_BLANK.md         ← the seed document your org fills out
 ```
 
-## Quick start (validated runbook)
+## License
 
-1. **Accounts**: the org needs a Claude account (a plan with skills + the Airtable connector) and an Airtable account.
-2. **Connect Airtable to Claude — with full/workspace access.** This is the critical step: base creation requires workspace-level scope. A connection scoped to individual bases will halt the install at the first check.
-3. **Save the installer**: add `skill/grant-assistant-startup.skill` to Claude as a skill.
-4. **Fill the seed template** (`template/Org_Seed_Template_BLANK.md`). Ten ★REQUIRED fields must be complete — the install halts and names any that are blank.
-5. **Run it** in a new Claude Project thread, template attached:
-   > *Invoke the grant-assistant-startup skill and read the attached seed document for context.*
-
-Expect roughly **15 minutes** and on the order of **100–130k tokens** for a typical install (observed in the first commercial run). The thread ends with a verification report and the four org skills presented for install.
-
-Full details, verification checklist, and troubleshooting: **[docs/INSTALL_GUIDE.md](docs/INSTALL_GUIDE.md)**.
-
-## Design principles (the short version)
-
-1. Method lives in skills; judgment lives in the org's data, read live.
-2. Halt over guess — a blank required field stops the install; a wrong default silently mis-scores forever.
-3. The human operator stays in the middle: pursuit, promotion, budgets, and submission are never automated.
-4. Flag gaps, never invent — no fabricated metrics, partners, budgets, or eligibility.
-5. Honest audit trails — every cycle logs what actually happened, including what wasn't covered.
-6. Live schema always wins — skills re-read Airtable before every write; snapshots are conveniences, not truth.
-
-## Maintaining this repo
-
-- The unpacked skill (`skill/grant-assistant-startup/`) is the source of truth. After editing `SKILL.md` or the bundled template, repackage to a fresh `.skill` and commit both.
-- Keep `template/Org_Seed_Template_BLANK.md` and the copy inside `skill/.../assets/` in sync — the skill hands its bundled copy to users who arrive without one.
-- Version notes belong at the top of `SKILL.md`; breaking schema changes (table/field/option definitions) warrant a version bump and a reconcile-mode note, since already-installed orgs read those exact option strings.
+This project is licensed under the [Apache License 2.0](LICENSE) — a permissive open-source license. In plain terms: you may use, modify, and share this freely (including commercially), as long as you keep the license and copyright notices with it and note any changes you make. It comes with no warranty. See the [LICENSE](LICENSE) file for the full terms and [NOTICE](NOTICE) for the copyright.
