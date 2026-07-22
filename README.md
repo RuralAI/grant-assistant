@@ -20,10 +20,10 @@ Click the green **Code** button at the top of this page, select **Download ZIP**
 
 **Step 2: Check prerequisites.**
 - A Claude account (Pro, Team, or Enterprise) with permission to add custom skills and connect integrations.
-- An Airtable account (Free or Paid).
+- An Airtable account (Free for 14 days shifting to paid monthly or annual).
 
 **Step 3: Connect Airtable to Claude.**
-In Claude, connect your Airtable integration. **Important:** select **Full / Workspace Access** so Claude can automatically build your new base.
+In Claude, connect your Airtable integration. **Important:** select **Full / Workspace Access** so Claude can automatically build your new base. In addition, in Claude go to Customize > Connectors > Airtable and update tool permissions to match how you like to work in Claude.
 
 **Step 4: Load the installer skill.**
 Import the installer file (`skill/grant-assistant-startup.skill`) into your Claude custom skills.
