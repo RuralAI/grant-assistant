@@ -11,7 +11,7 @@ This is the full runbook for installing the Grant Assistant for a nonprofit orga
 | Requirement | Detail |
 |---|---|
 | Claude account | A plan that supports **skills** and the **Airtable connector**, run in a Claude **Project**. Use a top-tier model for the install thread (the commercial install used the flagship model). |
-| Airtable account | Free tier works for the install; the org's record volume may warrant a paid plan later. |
+| Airtable account | Free tier works for the install; after the 14 day trial period the account will need to convert to paid. |
 | The installer skill | `skill/grant-assistant-startup.skill` from this repo. |
 | A filled seed template | `template/Org_Seed_Template_BLANK.md`, completed by the org. |
 | The right human | Someone who knows the org's grant history (active grants, past funders, restrictions) and its honest stage. |
