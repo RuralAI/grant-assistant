@@ -102,40 +102,16 @@ If the org has data the template didn't capture (a CRM export, a spreadsheet), a
 
 ## Step 4 — Generate the five operating skills
 
-Generate from the **validated full-fidelity production skill set** (grant-scoring, prospect-scan, airtable-write, audit-log, grant-writing — the master-model versions), retargeted to this org:
+Generate from the **canonical templates committed at `skill/templates/`** in this repo (`grant-scoring.template.md`, `prospect-scan.template.md`, `airtable-write.template.md`, `audit-log.template.md`, `grant-writing.template.md`) — these are the real, versioned source, not a tacit reference to a prior session. See `skill/templates/README.md` for the full templating convention; in short:
 
-- Replace every base ID, table ID, field ID, and option ID with THIS org's, from the Step 2 capture. **Zero leakage**: no other org's IDs, names, geography, bands, rules, or examples may appear — verify mechanically (grep the generated files for the source org's identifiers; the FCAS test proved this audit catches leaks).
+- Every template references tables and fields **by name**, never by hardcoded ID — the generated skill still says "Stage Posture," "Grant Master," etc. verbatim. Only the header placeholders (`{{org-slug}}`, `{{ORG NAME}}`, `{{BASE_ID}}`, `{{BASE_NAME}}`) get substituted with this org's real values from the Step 2 capture.
+- **Zero leakage**: no other org's IDs, names, geography, bands, rules, or examples may appear in the output — verify mechanically (grep the generated files for any other org's identifiers; the FCAS test proved this audit catches leaks).
 - Skill names: `<org-slug>-grant-scoring`, `<org-slug>-prospect-scan`, `<org-slug>-airtable-write`, `<org-slug>-audit-log`, `<org-slug>-grant-writing`.
 - The airtable-write skill bundles `references/field_map.md` — the full ID snapshot from Step 2, marked "live schema always wins."
 - The skills carry method only and read the judgment layer live from Org Profile, with **halt-on-missing**: if a required profile field is blank at runtime, the skill stops and names the field.
 - **Package each as a `.skill` file** (skill folder with SKILL.md [+ references/] → packaging script → `.skill`), and present them for install. Warn the user about the two install pitfalls observed live: (a) saving a skill under a name that already exists may NOT replace the old one — uninstall the old version first; (b) leftover older skills with similar names create trigger ambiguity — remove them.
 
-### The grant-writing skill's method (new in v1)
-
-This skill drafts grant application materials — an LOI, an organizational overview, a needs statement, a project narrative, or answers to specific application questions — grounded entirely in the org's own Org Profile and Grant Master data. Generate it with this method, retargeted the same way as the other four (org's base/table/field IDs from Step 2, zero leakage from any other org):
-
-**Gate — drafts only for grants at Stage = Active.** Promotion to Active is the operator's pursuit decision; drafting for a Stage = Possible or Watchlist grant would front-run a decision no human has made yet. If asked to draft for a grant not at Stage = Active, the skill stops and says so, naming the grant and its actual Stage.
-
-**Step 0 — read the sources, every time, before drafting a word.**
-- From **Org Profile**: Legal Name, Incorporation Status, Fiscal Sponsor + EIN (identity); **Stage Posture** (the hard boundary on claimable evidence — early-stage orgs may not claim audited financials, multi-year outcomes, or large results; a mature org's posture may permit them — read it, never assume it); Mission, Populations Served, Search Geography (framing); **Programs + Maturity** (a program tagged "in development" or "emerging" must be described that way, never as an established outcome); **Voice Rules** (apply throughout, not as a polish pass); Durable Rules and Recurring Eligibility Traps (writing-relevant guardrails).
-- From the target grant's **Grant Master** row: confirm Stage = Active (the gate above); Grant Name, Funder, Website, Funding Amount Min/Max, Restricted vs. Unrestricted, Project/Program Area, Application Close Date, Match Required + Details; and critically, **Scoring Notes / Pushback** — the scoring skill's honest pushback for this specific grant becomes a writing input. The draft must not contradict it, and its "missing assets" become the draft's gap placeholders.
-- **Halt-on-missing**, same as the other four skills: if Org Profile is unreadable or Stage Posture / Programs + Maturity / Voice Rules is blank, stop and name the field.
-- **Read the funder's own materials** if a live application page is reachable (the grant's Website field, or a user-supplied link). Draft to the funder's actual questions and word limits, not a generic template; if no live source is reachable, say so and draft to standard sections with that caveat.
-
-**Step 1 — confirm the assignment**: which document, any human-supplied facts for this draft (budget figures, confirmed partners — the ONLY source for numbers and commitments beyond Org Profile; the skill never derives a budget or names an unconfirmed partner), and any funder length/format constraints.
-
-**Step 2 — build the claims inventory before writing any prose.** Sort every potential claim into three buckets, and show this inventory alongside the draft as its audit trail:
-- **CLAIMABLE** — grounded in Org Profile or a human-supplied input, and permitted by Stage Posture.
-- **CLAIMABLE WITH FRAMING** — true only when stated at its actual maturity (a program tagged "in development" is described as in development, never as operating).
-- **GAP** — needed by the application but not claimable (unverified outcomes, quantified impact, audited financials, unconfirmed partners, budget detail). Each becomes a visible placeholder in the draft: `[GAP — needs: X, owner: human reviewer]`.
-
-**Step 3 — draft.** Every factual sentence traces to the claims inventory; nothing enters the prose that isn't CLAIMABLE, FRAMED, or a marked GAP. Voice Rules apply throughout. The scoring pushback is honored, not hidden — if scoring flagged a missing evaluation plan, the draft doesn't bluff one. Numbers come only from Grant Master, Org Profile, or human-supplied input, always attributed. Deliver as a document in the thread — never written to Airtable, never sent anywhere.
-
-**Step 4 — self-review before handing over**: any sentence that violates Stage Posture or over-states a program's maturity; any unsourced number; any Voice Rule violation; every GAP visibly marked with an owner; any contradiction of the scoring pushback. Fix what's fixable, disclose what isn't.
-
-**Step 5 — hand off** with the claims inventory, the gaps and who decides them, human decisions required (submission is always one), and the standing line: *"This is a draft for human review. Nothing has been submitted, sent, or represented to the funder."*
-
-**What it never does**: draft for a grant not at Stage = Active; invent metrics, outcomes, partners, budgets, program maturity, or legal status; soften a GAP placeholder to make prose flow; submit, send, or upload anything; write to Airtable; claim a draft is final.
+The **grant-writing** skill (new in v1) is generated the same way as the other four, from `skill/templates/grant-writing.template.md`. Its method in brief: it gates on **Stage = Active** (promotion is the pursuit decision, mirroring the write skill's Stage = Possible gate in reverse); it reads Org Profile's Stage Posture, Programs + Maturity, and Voice Rules plus the target grant's Scoring Notes / Pushback, and must not contradict the pushback; it builds a **claims inventory** (CLAIMABLE / CLAIMABLE WITH FRAMING / GAP) before drafting a word, so unverifiable claims become visible placeholders rather than invented evidence; and it never writes to Airtable or submits anything. See the template file for the full, generation-ready method.
 
 ---
 
@@ -209,3 +185,4 @@ When the base already exists: never create a duplicate base and never blindly ov
 11. **(v1)** A base is version-self-describing via the Org Profile **Installer Version** field; its absence (not blankness) is the unambiguous signal of a pre-versioning v0 install.
 12. **(v1)** Upgrading an existing install is explicit-trigger-only, never automatic on discovering an existing base — a routine reconcile against a v0 base is unaffected by the existence of v1.
 13. **(v1)** The grant-writing skill gates on Stage = Active (promotion is the pursuit decision, same principle as the write-skill's Stage = Possible gate in reverse); it reads the scoring skill's pushback as a writing input and must not contradict it; its claims inventory (CLAIMABLE / CLAIMABLE WITH FRAMING / GAP) is the mechanism that keeps drafts from over-claiming.
+14. **(v1)** All five generated skills are produced from templates committed at `skill/templates/`, not from tacit prior-session memory — a fresh Claude session with no history of this project can run Step 4 correctly by reading the repo alone. Templates reference tables/fields by name, never by hardcoded ID, so generation substitutes only the org header placeholders.
