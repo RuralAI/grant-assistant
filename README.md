@@ -40,6 +40,8 @@ Start a new thread in Claude, attach your filled-out template, and run:
 
 📖 **Full step-by-step walkthrough & troubleshooting:** see [docs/INSTALL_GUIDE.md](docs/INSTALL_GUIDE.md).
 
+🗂️ **Want to understand or customize your Airtable base?** See [docs/AIRTABLE_FAQ.md](docs/AIRTABLE_FAQ.md) — a plain-language walkthrough of every table and field, which parts are safe to reshape, and hands-on exercises to try.
+
 ## How it works (the short version)
 
 **Your judgment lives in your data, not in the software.** Everything specific to your organization — what sizes of grants fit you, what you can honestly claim, which funders to avoid, your non-negotiable rules — lives in an **Org Profile** table in your own Airtable. The skills read it every time they run. When your organization grows or changes, you edit that table, and the system's behavior follows. No reinstall.
@@ -59,6 +61,7 @@ grant-assistant/
 ├── CHANGELOG.md               ← what shipped in each version
 ├── docs/
 │   ├── INSTALL_GUIDE.md       ← the full install walkthrough (start here)
+│   ├── AIRTABLE_FAQ.md        ← table/field reference + customization guide
 │   └── images/                ← screenshots for the guide
 ├── skill/
 │   ├── grant-assistant-startup.skill      ← the installer you load into Claude
