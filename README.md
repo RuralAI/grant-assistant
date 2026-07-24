@@ -29,7 +29,7 @@ In Claude, connect your Airtable integration. **Important:** select **Full / Wor
 Import the installer file (`skill/grant-assistant-startup.skill`) into your Claude custom skills.
 
 **Step 5: Fill out your seed document.**
-Open `template/Org_Seed_Template_BLANK.md` and complete it — especially the 10 required fields marked with ★. Every question includes instructions and a real example.
+Open `template/Org-Seed-Template-BLANK.md` and complete it — especially the 10 required fields marked with ★. Every question includes instructions and a real example.
 
 **Step 6: Run the installer.**
 Start a new thread in Claude, attach your filled-out template, and run:
@@ -56,6 +56,7 @@ grant-assistant/
 ├── LICENSE                    ← Apache 2.0 license
 ├── NOTICE                     ← copyright notice
 ├── CONTRIBUTING.md            ← for the team maintaining this repo
+├── CHANGELOG.md               ← what shipped in each version
 ├── docs/
 │   ├── INSTALL_GUIDE.md       ← the full install walkthrough (start here)
 │   └── images/                ← screenshots for the guide
@@ -63,7 +64,7 @@ grant-assistant/
 │   ├── grant-assistant-startup.skill      ← the installer you load into Claude
 │   └── grant-assistant-startup/           ← its source, for review
 └── template/
-    └── Org_Seed_Template_BLANK.md         ← the seed document your org fills out
+    └── Org-Seed-Template-BLANK.md         ← the seed document your org fills out
 ```
 
 ## License
