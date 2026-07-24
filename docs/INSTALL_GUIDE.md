@@ -13,7 +13,7 @@ This is the full runbook for installing the Grant Assistant for a nonprofit orga
 | Claude account | A plan that supports **skills** and the **Airtable connector**, run in a Claude **Project**. Use a top-tier model for the install thread (the commercial install used the flagship model). |
 | Airtable account | Free tier works for the install; after the 14 day trial period the account will need to convert to paid. |
 | The installer skill | `skill/grant-assistant-startup.skill` from this repo. |
-| A filled seed template | `template/Org_Seed_Template_BLANK.md`, completed by the org. |
+| A filled seed template | `template/Org-Seed-Template-BLANK.md`, completed by the org. |
 | The right human | Someone who knows the org's grant history (active grants, past funders, restrictions) and its honest stage. |
 
 ---
@@ -42,7 +42,7 @@ Why this matters (observed live, twice):
 
 ## Phase 3 — Fill the seed template
 
-Give the org `template/Org_Seed_Template_BLANK.md`. Every field has an instruction and a real example. Sections:
+Give the org `template/Org-Seed-Template-BLANK.md`. Every field has an instruction and a real example. Sections:
 
 - **A–G**: identity, mission, problem framing, geography and populations, programs (with honest maturity tags), team, partnerships.
 - **H — the dedup baseline (most important for data quality)**: H1 active grants *with recurrence cycles and next-open dates*, H2 known prospects, H3 awarded/historical grants, **H4 the funder/donor list (paste from the CRM export)**, **H5 funder restrictions**. Everything listed here becomes Airtable records; anything omitted is a hole the scan can fall into later (it may re-surface a funder the org already evaluated).
