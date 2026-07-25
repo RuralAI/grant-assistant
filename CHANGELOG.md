@@ -6,7 +6,30 @@ This project does not yet follow strict [Semantic Versioning](https://semver.org
 
 ## [Unreleased]
 
-- Airtable FAQ (in progress) — table-by-table field/metadata reference, the reasoning behind each operator-only context table (Portfolio, Active Grants, Archive, Active Donors, Donor Restriction Log), and guidance for building custom views and simple automations on top of an installed base without touching Grant Master or Donor Master.
+- Further grant-writing skill refinements (feedback pending from the grant lead).
+
+## [1.1] — 2026-07-25
+
+**Headline changes:** the base now reads like grant-management software rather than a schema — lifecycle-labelled table names, a real Watchlist stage with its own statuses, and a pre-award pipeline that walks LOI-to-proposal. Plus multi-profile support, fixing a limitation found in live testing.
+
+### Added
+- **`Watchlist` table and Grant Master `Stage` option.** Good-fit grants you're deliberately not pursuing yet now have a real home instead of cluttering the Possible queue. Statuses: Awaiting Next Cycle / Not Yet Eligible / Low Priority / Emerging Fit / Relationship Needed / Monitoring, plus Next Review Date and a **What Would Need to Change** field that turns a vague "someday" into an actual checklist. Structurally it mirrors Active/Awarded/Archived: Stage on the master, context row for the details.
+- **Multi-profile support via a `Profile Name` field on Our Org Profile.** Live testing found the skills assumed exactly one profile row, so a second profile was unreachable. Skills now default to the first row and **state which profile they used**; an explicitly named profile is matched on Profile Name; a named profile that doesn't exist causes a halt with the available names listed, never a silent fallback. Useful for modelling a fiscally sponsored project versus independent status, distinct programs, or testing a different posture without disturbing real settings.
+- **Six new `Application Status` options on Active Grants (Pre-Award)** (four → eight), walking a pursuit through its real sequence: Researching → Preparing LOI → LOI Submitted - Awaiting Decision → Preparing Full Proposal → Full Proposal Submitted - Awaiting Decision, then one of three terminal signposts (Awarded - In Portfolio / Declined - In Archive / Withdrawn - In Archive).
+- **FAQ: a "build one view per stage" best practice** — the highest-value habit for keeping a single-source-of-truth table readable, with named example views per Stage.
+- **FAQ: a multi-profile section**, including the practical tip of keeping separate chat windows per profile.
+
+### Changed
+- Installer version bumped **v1.0 → v1.1**.
+- **Table renames** (breaking): `Org Profile` → `Our Org Profile`; `Portfolio` → `Portfolio (Post-Award)`; `Active Grants` → `Active Grants (Pre-Award)`. Airtable preserves table and field IDs through a rename, so no data moves and no links break — but generated skills resolve fields by *name*, so all five must be regenerated.
+- **`Withdrawn` removed as a Grant Master Stage** (breaking). It's a disposition, not a lifecycle stage: a withdrawn grant is now `Stage = Archived` with an Archive row reasoned "Withdrawn," which Archive already supported.
+- **Base is now ten tables, six context-table links** (was nine and five).
+- **Step 7 (Upgrade mode) rewritten** to detect three states — no `Installer Version` field (v0), `"v1.0"`, or `"v1.1"` — and apply only the relevant delta. Two data-safety rules added: never delete a select option that live records still use (check for `Stage = Withdrawn` rows first and let the operator re-file them), and never auto-map old Application Status values onto the new eight, since the old four don't carry the LOI-versus-proposal distinction and every mapping would be a guess.
+- **Upgrades involving renames now regenerate all five skills**, not just newly added ones — a departure from v1's additive-only upgrade, and called out explicitly since it changes what an upgrade run does.
+- All five templates in `skill/templates/` updated for the renames, the Watchlist stage, and the profile-selection protocol.
+
+### Notes for existing installs
+Two live installs (CRAI production, and the first commercial install) predate v1.1 and will need an explicit upgrade run. No data migration is required — renames are ID-stable — but expect to re-file any rows sitting at `Stage = Withdrawn` and any Active Grants rows still using the old four statuses. The upgrade reports both rather than guessing.
 
 ## [1.0] — 2026-07-24
 
