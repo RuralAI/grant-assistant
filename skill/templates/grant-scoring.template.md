@@ -1,13 +1,13 @@
 ---
 name: {{org-slug}}-grant-scoring
-description: "Use this skill whenever evaluating or scoring a grant opportunity for {{ORG NAME}} - assessing fit, deciding pursue/watchlist/reject, rating an opportunity, or judging whether the org should apply. It scores fit objectively (/20) and readiness qualitatively, reports them separately, verifies against primary sources before scoring, applies visible downgrade layers, gives honest pushback, and reads the org's judgment layer (stage posture, award bands, fit criteria, durable rules, loan posture, eligibility traps) live from the Org Profile table so the skill never needs updating as the org evolves. Trigger it even when phrased casually ('is this grant worth it', 'should we go for this one', 'score this opportunity', 'evaluate this funder'), and apply it before writing any score into Airtable."
+description: "Use this skill whenever evaluating or scoring a grant opportunity for {{ORG NAME}} - assessing fit, deciding pursue/watchlist/reject, rating an opportunity, or judging whether the org should apply. It scores fit objectively (/20) and readiness qualitatively, reports them separately, verifies against primary sources before scoring, applies visible downgrade layers, gives honest pushback, and reads the org's judgment layer (stage posture, award bands, fit criteria, durable rules, loan posture, eligibility traps) live from the Our Org Profile table so the skill never needs updating as the org evolves. Trigger it even when phrased casually ('is this grant worth it', 'should we go for this one', 'score this opportunity', 'evaluate this funder'), and apply it before writing any score into Airtable."
 ---
 
 # {{ORG NAME}} Grant Scoring (thin / live-read, master model)
 
 This skill makes grant evaluation consistent and honest. Its purpose is to protect the org's credibility and staff time by separating opportunities it can genuinely win from ones that merely sound aligned. It does not decide what the org pursues - a human does. It produces a grounded recommendation.
 
-**This skill carries method only.** Everything specific to this org - its stage, budget bands, fit criteria, durable rules, loan stance, eligibility traps - lives in the **Org Profile** table and is read at runtime. The org updates its profile in Airtable as it grows, and this skill's behavior follows without being rewritten.
+**This skill carries method only.** Everything specific to this org - its stage, budget bands, fit criteria, durable rules, loan stance, eligibility traps - lives in the **Our Org Profile** table and is read at runtime. The org updates its profile in Airtable as it grows, and this skill's behavior follows without being rewritten.
 
 **Production base: `{{BASE_ID}}` "{{BASE_NAME}}".** Do NOT read from or write to any base whose name carries a "- RETIRE" suffix - those are retired and exist only as do-not-touch history.
 
@@ -15,9 +15,20 @@ Core design: **fit is scored objectively, readiness is assessed qualitatively, a
 
 ---
 
-## Step 0 - Read the judgment layer from Org Profile (first, every time)
+## Step 0 - Select and read the judgment layer from Our Org Profile (first, every time)
 
-Read the single Org Profile record. Load:
+### Which profile to use (multi-profile support)
+
+The **Our Org Profile** table may hold one row or several - an org may keep separate profiles for distinct divisions, programs, or fiscal-sponsor arrangements, and may work from different profiles in different chat sessions.
+
+- **Default**: if the user has not named a profile, use the **first row** in the table, and **state which profile you used** (by its Profile Name) in your output, so the user can correct you if it wasn't the one they intended.
+- **Explicit**: if the user names a profile ("use the Equine Program profile", "score this against our fiscal-sponsor profile"), match it against the **Profile Name** field and use that row.
+- **Not found**: if the named profile matches no Profile Name, STOP and list the available Profile Names. Do not fall back to the first row - different profiles carry different judgment, and guessing produces a confidently wrong result.
+- **Never merge across profiles.** One profile governs one piece of work.
+
+### What to load
+
+From the selected profile row, load:
 
 - **Stage Posture** - what the org may and may not claim as evidence.
 - **Award Band Strong Min / Max** - the size bands.
@@ -27,7 +38,7 @@ Read the single Org Profile record. Load:
 - **Recurring Eligibility Traps** - the checks to run every time.
 - **Funding Priority Order**, **Programs + Maturity**, **Operating Budget**.
 
-**Halt-on-missing.** If Org Profile is missing, unreadable, or ANY required judgment field is blank (Stage Posture, Award Bands, Fit Criteria, Durable Rules, Loan Posture, Recurring Eligibility Traps, Programs + Maturity), STOP and tell the operator exactly which field to fix. Do not score on guessed defaults - a wrong default silently mis-scores. A halt is visible and safe.
+**Halt-on-missing.** If Our Org Profile is missing, unreadable, or ANY required judgment field is blank (Stage Posture, Award Bands, Fit Criteria, Durable Rules, Loan Posture, Recurring Eligibility Traps, Programs + Maturity), STOP and tell the operator exactly which field to fix. Do not score on guessed defaults - a wrong default silently mis-scores. A halt is visible and safe.
 
 ---
 
@@ -41,18 +52,18 @@ Never score from a funder name or memory. Find the primary source (funder page o
 
 Classify the instrument before any scoring: Unrestricted / general operating, Capacity-building, Program / project-restricted, Capital, or Loan / repayable capital.
 
-For a loan, apply the **Loan Posture** read from Org Profile - it may say "exclude outright" or "case-by-case, flag for board," and this skill follows whichever the org has actually set, never assuming one or the other. If excluded: classify it as a loan, do not score it on the grant rubric, reject it as a grant recommendation, and note it only as sector intelligence if useful. Rural- or mission-adjacent language does not turn a loan into a grant.
+For a loan, apply the **Loan Posture** read from Our Org Profile - it may say "exclude outright" or "case-by-case, flag for board," and this skill follows whichever the org has actually set, never assuming one or the other. If excluded: classify it as a loan, do not score it on the grant rubric, reject it as a grant recommendation, and note it only as sector intelligence if useful. Rural- or mission-adjacent language does not turn a loan into a grant.
 
 ---
 
 ## Step 3 - Score the FIT criteria (objective, /20)
 
-Use the four criteria and their 1/3/5 anchors **as defined in Org Profile's Fit Criteria + Anchors**. Score each from the funder's materials - the criteria describe the opportunity, not the org.
+Use the four criteria and their 1/3/5 anchors **as defined in Our Org Profile's Fit Criteria + Anchors**. Score each from the funder's materials - the criteria describe the opportunity, not the org.
 
 For the funding-size criterion, score against the **Award Band** fields:
 - Within Strong Min-Max -> strong (5).
 - Near the band edges -> moderate (3).
-- Far outside -> poor (1). Also check any funder-side percent-of-budget rule against Org Profile's Operating Budget (e.g., a "10% of operating budget" cap resolves which award tier the org may actually request).
+- Far outside -> poor (1). Also check any funder-side percent-of-budget rule against Our Org Profile's Operating Budget (e.g., a "10% of operating budget" cap resolves which award tier the org may actually request).
 
 Sum to a **Fit Score /20**: High Fit 16-20, Medium Fit 10-15, Low Fit <10. One-line note per criterion.
 
@@ -62,7 +73,7 @@ Sum to a **Fit Score /20**: High Fit 16-20, Medium Fit 10-15, Low Fit <10. One-l
 
 Assess: eligibility fit; deadline feasibility; partner requirements; programmatic fit; application burden.
 
-- **Programmatic fit** scores highest when an *existing named program* (per Org Profile's Programs + Maturity) maps directly to the funded work; lower when the mapped program is tagged "In development"/"Emerging" or the org would build from scratch. Never describe a program above its maturity tag.
+- **Programmatic fit** scores highest when an *existing named program* (per Our Org Profile's Programs + Maturity) maps directly to the funded work; lower when the mapped program is tagged "In development"/"Emerging" or the org would build from scratch. Never describe a program above its maturity tag.
 - **Stage-appropriate gates**: apply the Stage Posture honestly, whatever it says. An early-stage org fails audited-financials and multi-year-outcomes gates; a mature org may clear them. Read the posture rather than assuming either.
 
 Assign a readiness label: **Actionable / Needs Eligibility Confirmation / Not Ready This Cycle / Blocked by Eligibility** (these are the exact Grant Master option strings).
@@ -87,6 +98,8 @@ Report both axes, then synthesize into the Priority label (exact Grant Master op
 
 Never let a strong fit score imply pursuit-readiness. High fit does not mean pursuit-ready; thematic alignment does not override eligibility.
 
+**A `Watchlist / Future Fit` Priority is a recommendation, not a filing action.** Write it onto the Grant Master row while that row stays at **Stage = Possible**. Moving the grant to `Stage = Watchlist` and creating its Watchlist context row (with a watchlist status and next-review date) is the operator's decision - the same gate that governs Active, Awarded, and Archived. Never set Stage yourself.
+
 ---
 
 ## Step 7 - Apply the downgrade layers (visible, not automatic)
@@ -102,7 +115,7 @@ Each produces a recommended adjustment with the underlying scores still shown. T
 
 ## Step 8 - Honest pushback
 
-Name where the org is tempted to overstate fit, claim unverified pilot outcomes, force thematic alignment, or apply before it is ready - checked against the **Durable Rules** from Org Profile. Never violate a durable rule to make an opportunity look better. The pushback is the most valuable output and it feeds downstream: the grant-writing skill reads it and must not contradict it.
+Name where the org is tempted to overstate fit, claim unverified pilot outcomes, force thematic alignment, or apply before it is ready - checked against the **Durable Rules** from Our Org Profile. Never violate a durable rule to make an opportunity look better. The pushback is the most valuable output and it feeds downstream: the grant-writing skill reads it and must not contradict it.
 
 ---
 

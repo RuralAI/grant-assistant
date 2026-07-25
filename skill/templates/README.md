@@ -10,7 +10,7 @@ Before this folder existed, the installer's Step 4 said "generate from the valid
 
 **These templates reference every table and field by its canonical name — never by a hardcoded ID.** For example, a template says:
 
-> Read **Stage Posture** from Org Profile.
+> Read **Stage Posture** from Our Org Profile.
 
 It never says:
 
@@ -21,7 +21,7 @@ When the installer (Step 4 of `grant-assistant-startup/SKILL.md`) generates a sk
 1. Takes one of these template files as-is.
 2. Replaces the placeholder header block (base ID, base name, org name/slug) with that org's real values, captured during Step 2 of the install.
 3. Leaves every table/field **name** reference exactly as written — the generated skill still says "Stage Posture," "Grant Master," "Fit Score," etc. The generated skill's own write discipline (see the airtable-write template) requires re-reading live schema before every write, so it resolves names to IDs at runtime rather than trusting any ID baked in at generation time.
-4. Where a template illustrates a rule with an example (e.g., "an early-stage org may not claim audited financials"), that example is generic and instructive — it is never copied as if it were this org's actual judgment. The org's actual judgment always comes from its own Org Profile, read live.
+4. Where a template illustrates a rule with an example (e.g., "an early-stage org may not claim audited financials"), that example is generic and instructive — it is never copied as if it were this org's actual judgment. The org's actual judgment always comes from its own Our Org Profile, read live.
 
 This is deliberately **not** a `{{TOKEN}}` find-and-replace scheme. Generation is done by an LLM reading the template and the org's field map together — asking it to substitute names for the right table/field is more robust than asking it to find and replace literal tokens, and it keeps these template files readable as documentation in their own right.
 

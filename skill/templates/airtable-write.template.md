@@ -1,6 +1,6 @@
 ---
 name: {{org-slug}}-airtable-write
-description: "Use this skill BEFORE any write to the {{ORG NAME}} Grant Pipeline (Master Model) base ({{BASE_ID}}) - any create_records_for_table, update_records_for_table, update_field, create_field, create_table, or delete call against it. This is the production base. Skills write ONLY to Grant Master rows at Stage = Possible, to Donor Master (new funders), and to Search Audit Log. Grant Master rows at any other Stage, and the operator context tables (Active Grants, Portfolio, Archive, Active Donors, Donor Restriction Log) and Org Profile, are off-limits to writes - the operator promotes and dispositions manually by flipping Stage and linking context rows. This skill encodes the write discipline (re-read live schema first, never write computed fields, exact option strings, funder-name dedup, no orphaned data) plus the base/table/field map. Trigger it whenever the task writes a scanned grant or donor, logs an audit cycle, or edits any record in this base - even if the user just says 'add this to Airtable.'"
+description: "Use this skill BEFORE any write to the {{ORG NAME}} Grant Pipeline (Master Model) base ({{BASE_ID}}) - any create_records_for_table, update_records_for_table, update_field, create_field, create_table, or delete call against it. This is the production base. Skills write ONLY to Grant Master rows at Stage = Possible, to Donor Master (new funders), and to Search Audit Log. Grant Master rows at any other Stage, and the operator context tables (Active Grants (Pre-Award), Portfolio (Post-Award), Watchlist, Archive, Active Donors, Donor Restriction Log) and Our Org Profile, are off-limits to writes - the operator promotes and dispositions manually by flipping Stage and linking context rows. This skill encodes the write discipline (re-read live schema first, never write computed fields, exact option strings, funder-name dedup, no orphaned data) plus the base/table/field map. Trigger it whenever the task writes a scanned grant or donor, logs an audit cycle, or edits any record in this base - even if the user just says 'add this to Airtable.'"
 ---
 
 # {{ORG NAME}} Grant Pipeline (Master Model) - Write Discipline
@@ -13,9 +13,10 @@ This skill governs every write to the production base **`{{BASE_ID}}` "{{BASE_NA
 
 ```
 scan writes -> Grant Master (Stage = Possible) -> operator flips Stage + links a context row
-                    Stage = Active   -> Active Grants context row (work fields)
-                    Stage = Awarded  -> Portfolio context row (award management)
-                    Stage = Archived -> Archive context row (disposition)
+                    Stage = Active    -> Active Grants (Pre-Award) context row (work fields)
+                    Stage = Awarded   -> Portfolio (Post-Award) context row (award management)
+                    Stage = Watchlist -> Watchlist context row (why-not-now + review date)
+                    Stage = Archived  -> Archive context row (disposition)
 ```
 
 Grant Master holds ALL core grant data (identity, funder, amounts, cycle info, scoring output) for every lifecycle stage - one row per grant, no duplicated master data. The context tables hold only stage-specific working fields and link back via `multipleRecordLinks`. Donor Master mirrors this for funders, with Active Donors and Donor Restriction Log as its context tables.
@@ -27,7 +28,9 @@ Grant Master holds ALL core grant data (identity, funder, amounts, cycle info, s
 2. **Donor Master** - create new funders discovered by a scan (Donor Name, Category / Type, Website); the operator enriches.
 3. **Search Audit Log** - one entry per cycle.
 
-**Skills NEVER write:** Grant Master rows at Stage Active / Awarded / Archived / Withdrawn; **Active Grants**; **Portfolio**; **Archive**; **Active Donors**; **Donor Restriction Log**; **Org Profile** (read-only living seed). Skills READ Grant Master (all stages), Donor Restriction Log, and Org Profile for dedup, restriction checks, and judgment.
+**Skills NEVER write:** Grant Master rows at any Stage other than Possible (Active / Awarded / Watchlist / Archived); **Active Grants (Pre-Award)**; **Portfolio (Post-Award)**; **Watchlist**; **Archive**; **Active Donors**; **Donor Restriction Log**; **Our Org Profile** (read-only living seed). Skills READ Grant Master (all stages), Donor Restriction Log, and Our Org Profile for dedup, restriction checks, and judgment.
+
+**On Watchlist specifically:** the scoring skill may recommend a watchlist outcome via the Priority field (`Watchlist / Future Fit`), but it writes that recommendation onto a row at **Stage = Possible**. Moving a grant to `Stage = Watchlist` and creating its Watchlist context row is an **operator action** - the same gate that governs Active, Awarded, and Archived. Never set Stage = Watchlist.
 
 ## Grant Master writable fields
 
@@ -37,14 +40,14 @@ Factual: Grant Name (primary, writable text) | Stage (set "Possible" only) | Fun
 
 Scoring (from the grant-scoring skill): Fit Score (number 0-20) | Fit Level | Readiness | Priority | Scoring Notes / Pushback.
 
-Leave for the operator: Pipeline Priority; the three link fields (Active Grants / Portfolio / Archive).
+Leave for the operator: Pipeline Priority; the four link fields (Active Grants (Pre-Award) / Portfolio (Post-Award) / Watchlist / Archive).
 
 Donor Master: Donor Name | Category / Type | Website. Leave Owner, Notes, and the two link fields for the operator.
 
 ## The non-negotiable sequence (every write)
 
 1. **Re-read the live schema first.** Call `get_table_schema` for the target table immediately before writing. Do NOT trust a cached ID snapshot, memory, or an earlier read - assume drift. If snapshot and live disagree, live wins.
-2. **Confirm base and table.** Target only Grant Master (Stage=Possible), Donor Master, or Search Audit Log in this org's production base. If a task seems to need any other write - a Stage flip, a context-table row, an Org Profile edit - STOP: that is an operator action.
+2. **Confirm base and table.** Target only Grant Master (Stage=Possible), Donor Master, or Search Audit Log in this org's production base. If a task seems to need any other write - a Stage flip, a context-table row, an Our Org Profile edit - STOP: that is an operator action.
 3. **For updates: confirm Stage = Possible on the target row before touching it.** Read the row; if Stage is anything else, stop and flag for the operator.
 4. **Map each value by field ID and exact option string** against the just-read schema; confirm the field is in write-scope.
 5. **Write**, preferring a single batched call.
@@ -54,7 +57,7 @@ Donor Master: Donor Name | Category / Type | Website. Leave Owner, Notes, and th
 Skip any autoNumber, formula, rollup, count, lookup, createdTime, lastModifiedTime. (Grant Name and Donor Name are writable text primaries; Fit Score is a plain number and IS writable.)
 
 ## Rule 2 - Use the EXACT option string
-- Stage: Possible / Active / Awarded / Archived / Withdrawn (skills set only "Possible").
+- Stage: Possible / Active / Awarded / Watchlist / Archived (skills set only "Possible"). Note there is no "Withdrawn" stage - a withdrawn grant is Stage = Archived with an Archive context row reasoned "Withdrawn".
 - Restricted vs. Unrestricted: Unrestricted (General Operating Potential) / Restricted (Program / Project Specific) / Capacity-Building / Capital / Other / Unknown.
 - Match Required: Yes / No / Unknown.
 - Fit Level: High Fit / Medium Fit / Low Fit.

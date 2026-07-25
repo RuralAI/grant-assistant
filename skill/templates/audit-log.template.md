@@ -7,7 +7,7 @@ description: "Use this skill whenever recording what happened in a {{ORG NAME}} 
 
 The Search Audit Log is the org's paper trail - it makes each work cycle legible to the operator and lets the next session continue cleanly. Cardinal rule: **the entry must honestly reflect what actually happened, including what was NOT done.** An entry that oversells a cycle is worse than none, because the trail is what people trust.
 
-**Production base: `{{BASE_ID}}` "{{BASE_NAME}}", table Search Audit Log.** This skill produces the entry's content; the **airtable-write** skill governs the actual write (re-read schema, field IDs, exact option strings). This skill is fixed method and needs no Org Profile read.
+**Production base: `{{BASE_ID}}` "{{BASE_NAME}}", table Search Audit Log.** This skill produces the entry's content; the **airtable-write** skill governs the actual write (re-read schema, field IDs, exact option strings). This skill is fixed method and needs no Our Org Profile read.
 
 ## First: classify the cycle type honestly
 

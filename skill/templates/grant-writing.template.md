@@ -1,13 +1,13 @@
 ---
 name: {{org-slug}}-grant-writing
-description: "Use this skill when drafting grant application materials for {{ORG NAME}} - an LOI, an organizational overview, a needs statement, a project narrative, a funding-request narrative, or answers to specific application questions for a grant the org is pursuing. It reads the org's identity, stage posture, evidence limits, programs, and voice rules live from the Org Profile table, and the target grant's funder, amounts, program area, and scoring pushback from Grant Master, so every draft is grounded in the same data the pipeline runs on. It drafts ONLY for grants the operator has promoted to Stage = Active (promotion IS the pursuit decision), marks every unverifiable claim as a visible gap rather than inventing evidence, and produces drafts for human review - it never submits, sends, or finalizes anything. Trigger it when the user says 'draft the LOI for X', 'help me write the narrative for X', 'answer these application questions', or similar, and pair it with the grant-scoring skill (whose pushback it reads) and Org Profile."
+description: "Use this skill when drafting grant application materials for {{ORG NAME}} - an LOI, an organizational overview, a needs statement, a project narrative, a funding-request narrative, or answers to specific application questions for a grant the org is pursuing. It reads the org's identity, stage posture, evidence limits, programs, and voice rules live from the Our Org Profile table, and the target grant's funder, amounts, program area, and scoring pushback from Grant Master, so every draft is grounded in the same data the pipeline runs on. It drafts ONLY for grants the operator has promoted to Stage = Active (promotion IS the pursuit decision), marks every unverifiable claim as a visible gap rather than inventing evidence, and produces drafts for human review - it never submits, sends, or finalizes anything. Trigger it when the user says 'draft the LOI for X', 'help me write the narrative for X', 'answer these application questions', or similar, and pair it with the grant-scoring skill (whose pushback it reads) and Our Org Profile."
 ---
 
 # {{ORG NAME}} Grant Writing Assistant (thin / live-read, master model)
 
-This skill turns the pipeline's data into funder-ready draft language. Its job is to reduce the grant lead's drafting burden while making it *impossible to accidentally over-claim*: every sentence is grounded in Org Profile, Grant Master, or an explicit human-supplied input, and everything else is a visible gap. It does not decide what the org pursues, does not submit anything, and does not invent evidence, partners, budgets, or outcomes.
+This skill turns the pipeline's data into funder-ready draft language. Its job is to reduce the grant lead's drafting burden while making it *impossible to accidentally over-claim*: every sentence is grounded in Our Org Profile, Grant Master, or an explicit human-supplied input, and everything else is a visible gap. It does not decide what the org pursues, does not submit anything, and does not invent evidence, partners, budgets, or outcomes.
 
-**This skill carries method only.** Who the org is, what it may claim, how it sounds, and what the target grant needs all come from the base at runtime: Org Profile and Grant Master. Update the profile and the drafts change; the skill doesn't.
+**This skill carries method only.** Who the org is, what it may claim, how it sounds, and what the target grant needs all come from the base at runtime: Our Org Profile and Grant Master. Update the profile and the drafts change; the skill doesn't.
 
 **Production base: `{{BASE_ID}}` "{{BASE_NAME}}".**
 
@@ -21,7 +21,16 @@ Promotion to Active is the operator's pursuit decision - the same principle as t
 
 ## Step 0 - Read the sources (every time, before drafting a word)
 
-**From Org Profile (single row):**
+### Which profile to use (multi-profile support)
+
+The **Our Org Profile** table may hold one row or several - an org may keep separate profiles for distinct divisions, programs, or fiscal-sponsor arrangements, and may work from different profiles in different chat sessions.
+
+- **Default**: if the user has not named a profile, use the **first row** in the table, and **state which profile you used** (by its Profile Name) in your output, so the user can correct you if it wasn't the one they intended.
+- **Explicit**: if the user names a profile ("use the Equine Program profile", "score this against our fiscal-sponsor profile"), match it against the **Profile Name** field and use that row.
+- **Not found**: if the named profile matches no Profile Name, STOP and list the available Profile Names. Do not fall back to the first row - different profiles carry different judgment, and guessing produces a confidently wrong result.
+- **Never merge across profiles.** One profile governs one piece of work.
+
+**From Our Org Profile** (select the profile first - see "Which profile to use" below):
 - Legal Name, Incorporation Status, Fiscal Sponsor + EIN - the applicant identity block.
 - **Stage Posture** - the hard boundary on claimable evidence. Read it, never assume it: an early-stage org may NOT claim audited financials, multi-year outcomes, or large program results; a mature org may claim its track record. Whatever this org's posture actually says governs every sentence that follows.
 - Mission, Populations Served, Search Geography - the framing block.
@@ -34,7 +43,7 @@ Promotion to Active is the operator's pursuit decision - the same principle as t
 - Grant Name, Funder, Website, Funding Amount Min/Max, Restricted vs. Unrestricted, Project / Program Area, Application Close Date, Match Required + Details.
 - **Scoring Notes / Pushback** - the most valuable input. The scoring skill's honest pushback for this grant lists exactly what's weak, missing, or at risk of over-claim. The draft must not contradict it, and its "missing assets" become the draft's gap placeholders.
 
-**Halt-on-missing:** if Org Profile is unreadable or Stage Posture / Programs + Maturity / Voice Rules is blank, stop and name the field. If the grant row lacks a funder or program area, stop and ask - don't guess what the funder wants.
+**Halt-on-missing:** if Our Org Profile is unreadable or Stage Posture / Programs + Maturity / Voice Rules is blank, stop and name the field. If the grant row lacks a funder or program area, stop and ask - don't guess what the funder wants.
 
 **Read the funder's own materials.** If a live application page or RFP is available (Website field or user-supplied), fetch and read it before drafting. Draft to the funder's actual questions, word limits, and priorities - not a generic template. If no live source is reachable, say so and draft to the standard sections with a caveat.
 
@@ -44,7 +53,7 @@ Promotion to Active is the operator's pursuit decision - the same principle as t
 
 Establish with the user, in one exchange if possible:
 1. **Which document**: LOI, full narrative, specific application questions, org overview, needs statement, budget narrative, or a section revision.
-2. **Any human-supplied facts** for this draft: budget figures, named partners with confirmed commitments, new evidence since the profile was written. These are the ONLY sources for numbers and commitments beyond Org Profile - the skill never derives a budget or names an unconfirmed partner.
+2. **Any human-supplied facts** for this draft: budget figures, named partners with confirmed commitments, new evidence since the profile was written. These are the ONLY sources for numbers and commitments beyond Our Org Profile - the skill never derives a budget or names an unconfirmed partner.
 3. **Length/format constraints** from the funder (word limits, required headings, portal fields).
 
 ---
@@ -53,7 +62,7 @@ Establish with the user, in one exchange if possible:
 
 List, from the sources read in Step 0, the specific claims this draft may make, in three buckets:
 
-- **CLAIMABLE** - grounded in Org Profile or human-supplied input and permitted by Stage Posture.
+- **CLAIMABLE** - grounded in Our Org Profile or human-supplied input and permitted by Stage Posture.
 - **CLAIMABLE WITH FRAMING** - true only when framed at its actual maturity (e.g. a program "in development" - never described as operating).
 - **GAP** - needed by this application but not claimable: unverified pilot outcomes, quantified impact, audited financials, unconfirmed partners, budget detail. Each becomes a visible placeholder in the draft: **[GAP - needs: X, owner: human reviewer]**.
 
@@ -69,7 +78,7 @@ Write the requested document, subject to:
 - **Voice Rules applied throughout** - whatever register this org has specified; every sentence carries a fact, an argument, or a specific next thing. No filler, no inflated adjectives, no prohibited patterns.
 - **The scoring pushback is honored, not hidden.** If scoring flagged "requires an evaluation plan the org doesn't have," the draft doesn't bluff one - it includes the gap placeholder or, where appropriate, honest forward-looking language ("the org will develop a one-page evaluation plan as part of this grant's first quarter").
 - **Funder-mirroring without pandering**: use the funder's own priority language where the org genuinely matches it; never stretch to echo priorities it doesn't meet - that's the over-claim the scoring skill already warned about.
-- **Numbers discipline**: dollar figures, participant counts, and dates come only from Grant Master fields, Org Profile, or human-supplied input, and are attributed. No derived or estimated figures presented as fact.
+- **Numbers discipline**: dollar figures, participant counts, and dates come only from Grant Master fields, Our Org Profile, or human-supplied input, and are attributed. No derived or estimated figures presented as fact.
 
 Deliver the draft as a document in the thread, never written to Airtable, never sent anywhere.
 
