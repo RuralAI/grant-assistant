@@ -253,6 +253,88 @@ Build a **calendar view** in Grant Master filtered to Stage = Possible, using Ap
 
 ---
 
+## When a skill stops working: version mismatches
+
+### What this looks like
+
+A skill that worked fine last week stops partway through and tells you it can't find something — usually naming it specifically, like "cannot find Our Org Profile" or "no field named Stage Posture." It doesn't give you a wrong answer; it stops.
+
+That halt is deliberate. The skills are built to stop and name the problem rather than guess and quietly write bad data. **Nothing is broken and nothing is lost when you see this.** Your Airtable data is intact — the skill just can't find its way around it.
+
+### Why it happens
+
+Your skills find tables and fields in Airtable **by name**. When a new version of the Grant Assistant renames something — for example, v1.1 renamed `Org Profile` to `Our Org Profile` — a skill built for the older names goes looking for a name that no longer exists.
+
+There are two ways to end up mismatched, and they're mirror images:
+
+- **Your base was upgraded, but your skills weren't re-saved.** The base now says "Our Org Profile"; your installed skills are still asking for "Org Profile."
+- **You saved newer skills against a base that hasn't been upgraded yet.** The reverse.
+
+Either way, the fix is to get both sides onto the same version.
+
+### The two assistants, and why you need both
+
+Fixing a version mismatch usually means changing your base's structure — renaming tables, adding fields, adding dropdown options, sometimes creating a whole new table. You have two AI assistants available, and they're good at different halves of this job:
+
+- **Claude** (running your Grant Assistant skills) knows *what* needs to change and why. It can read your base, compare it against the current version, check your records for anything that would be damaged by a change, and produce a precise list of what to do.
+- **Omni** (Airtable's own built-in AI assistant) is excellent at *making* structural changes quickly. Because it lives inside Airtable, it can do bulk schema work — several renames, a new table, a batch of new dropdown options — in one pass, faster and more reliably than an outside connection can.
+
+So the pattern is: **let Claude figure out the changes, then hand the list to Omni to execute.** Claude can make many of these changes itself, but when there are a lot of them at once, the handoff is quicker and less error-prone. Omni is available on every Airtable plan, including the free tier, and structural changes like these don't consume your AI credits.
+
+### How to fix it yourself
+
+You don't need a developer for this. Work through these in order.
+
+**1. Write down the exact message.** Note which table or field the skill said it couldn't find. That single detail usually tells you which direction the mismatch runs.
+
+**2. Check what version your base is on.** Open your base in Airtable and look at the profile table — it's called either `Our Org Profile` (newer) or `Org Profile` (older). Look for a field named **Installer Version**:
+
+- It shows a version number (e.g. "v1.1") → that's your base's version.
+- The field doesn't exist at all → your base predates version tracking. That's expected for early installs, and the upgrade handles it.
+
+**3. Ask Claude to run the upgrade.** Open a new Claude chat where the **grant-assistant-startup** skill is installed, and say:
+
+> Upgrade my grant assistant.
+
+Claude will check your base's version, tell you exactly what it intends to change, and **ask you to confirm before changing anything.** It won't touch your grant or donor records — upgrades rename tables and add fields, options, and tables; they never edit, move, or delete your data.
+
+If Claude reports anything that needs your judgment — for example, grant records still sitting at an old status that no longer exists — it will name those records and ask you to re-file them rather than guessing on your behalf. **Do that before continuing.** Claude deliberately won't guess at these, because a wrong guess is worse than a question.
+
+**4. If Claude gives you a list of changes to make, hand it to Omni.** For a large batch of structural changes, Claude may produce a written list rather than making every change itself. When that happens:
+
+1. Copy Claude's list of changes exactly as written.
+2. Open **Omni** in Airtable, with your Grant Assistant base open.
+3. Paste the list and let Omni make the changes. This usually takes seconds.
+4. **Come back to Claude and ask it to verify.** Say: *"Re-read the base schema and confirm the upgrade changes landed correctly."* Claude will check the live schema against what it expected and tell you if anything is missing or wrong.
+
+That last verification step matters. Omni is fast and generally accurate, but Claude is the one holding the checklist — having it confirm the result closes the loop rather than leaving you to assume it worked.
+
+⚠️ **One thing to watch in the handoff:** if Claude flagged records that need re-filing (step 3), don't ask Omni to simply delete the old dropdown options to tidy things up. Deleting an option that live records still use will strand that data. Re-file the records first, then remove the option — or just leave the old option in place, which is a perfectly acceptable outcome.
+
+**5. Save all the skills Claude gives you back.** An upgrade that renames tables regenerates **all five skills**, not just the new ones, because all five look things up by name. For each one: **uninstall the old skill with the same name first**, then save the new one. Saving over an existing name does not reliably replace it, and having two versions installed causes its own confusing problems.
+
+**6. Re-run whatever failed.** It should now complete normally.
+
+### If you're still stuck
+
+Gather these four things before asking for help — they're what anyone helping you will need first:
+
+1. **The skill's full message**, copied exactly, including the name of the table or field it couldn't find.
+2. **Your base's Installer Version** value (or a note that the field doesn't exist).
+3. **Which skill was running** when it stopped — scan, scoring, write, audit log, or grant writing.
+4. **What Omni did**, if you used it — the list you pasted and anything it reported back.
+
+A note on Omni's own availability: if Omni doesn't appear in your Airtable at all, and your account recently changed plans or came off a trial, your AI eligibility may not have refreshed yet — Airtable Support can confirm it. Claude can still make the changes directly in that case; it's just slower for large batches.
+
+### How to avoid this entirely
+
+When you're told an upgrade is available, do the whole thing in one sitting: run the upgrade, complete any re-filing Claude asks for, and immediately save all five regenerated skills. Mismatches almost always come from stopping halfway — upgrading the base and leaving the skills for later, or the other way around.
+
+<!-- MAINTAINERS: consider adding screenshots for the Omni handoff (where Omni opens in Airtable,
+     and a pasted change list mid-execution) to docs/images/, following the pattern in
+     docs/images/SCREENSHOTS_NEEDED.md. The Omni step is the least familiar part of this flow
+     for a non-technical operator. -->
+
 ## Quick reference
 
 | Table | Structural changes | Content changes |
