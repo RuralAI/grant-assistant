@@ -42,6 +42,27 @@ Start a new thread in Claude, attach your filled-out template, and run:
 
 🗂️ **Want to understand or customize your Airtable base?** See [docs/AIRTABLE_FAQ.md](docs/AIRTABLE_FAQ.md) — a plain-language walkthrough of every table and field, which parts are safe to reshape, and hands-on exercises to try.
 
+## A note on sensitive information
+
+Your Grant Assistant base is a standard Airtable base. This project does not add encryption, field-level redaction, or access tiers on top of it — whatever protection your data has is what you configure in Airtable and in your own organization's practices.
+
+**Keep out of the base:** Social Security or national ID numbers, bank and payment account details, donor payment card information, health information, immigration status, and personally identifying information about the individuals your programs serve. The same applies to what you paste into Claude chats when drafting — if it shouldn't be in the base, it shouldn't be in the chat.
+
+The base is built for information that is *institutional* rather than personal: funder guidelines and deadlines, award amounts, your own organization's facts and program descriptions, and internal notes on pursuit strategy.
+
+**Two fields attract sensitive detail more than the rest, so watch them:**
+
+- **Donor Restriction Log → Flag Language.** The reason a funder is off-limits can involve candid relationship history. Record what your team actually needs, and keep it professional enough to survive being read by someone who wasn't in the original conversation.
+- **Active Donors → Relationship Notes.** Same principle.
+
+**What you control, and should check periodically:**
+
+- **Who is invited to the base, and at what permission level.** Airtable's own sharing settings are the real access control here.
+- **Shared view links.** Airtable can generate a publicly accessible link to any view. Anyone with that URL can see the data in it, with no login required. This is the most common way a base leaks. Audit your shared links and delete any you don't actively need.
+- **The Airtable connector's scope in Claude.** Broad workspace access is required to *install*; you can narrow it afterward.
+
+If your organization handles regulated data, or is subject to data requirements from a funder, grantor, or regulator, review Airtable's security documentation and your own policies before entering anything that falls under them. This project makes no compliance claims and provides no data-protection guarantees.
+
 ## How it works (the short version)
 
 **Your judgment lives in your data, not in the software.** Everything specific to your organization — what sizes of grants fit you, what you can honestly claim, which funders to avoid, your non-negotiable rules — lives in an **Org Profile** table in your own Airtable. The skills read it every time they run. When your organization grows or changes, you edit that table, and the system's behavior follows. No reinstall.
