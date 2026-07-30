@@ -25,6 +25,17 @@ When the installer (Step 4 of `grant-assistant-startup/SKILL.md`) generates a sk
 
 This is deliberately **not** a `{{TOKEN}}` find-and-replace scheme. Generation is done by an LLM reading the template and the org's field map together — asking it to substitute names for the right table/field is more robust than asking it to find and replace literal tokens, and it keeps these template files readable as documentation in their own right.
 
+### ⚠️ Always quote a frontmatter value containing `{{ }}`
+
+In YAML, `{` opens a flow mapping, so an unquoted placeholder is a parse error:
+
+```yaml
+name: {{org-slug}}-audit-log      # ❌ breaks — GitHub shows "did not find expected key"
+name: "{{org-slug}}-audit-log"    # ✅ valid
+```
+
+The `description:` values are already quoted, which is why their `{{ }}` placeholders were never a problem — only the `name:` line needed fixing. Quoting is valid in a real generated skill too, so the quotes can carry straight through substitution. If you add a new frontmatter key that contains a placeholder, quote it.
+
 ## Zero-leakage rule
 
 No template file may contain any specific organization's name, base ID, table ID, field ID, judgment values (award bands, durable rules, geography, etc.), or illustrative examples drawn from a real org's actual data. Every example in these files is either clearly hypothetical or written at the level of "a mature org may..." / "an early-stage org may not..." — a pattern, not a fact about any real organization.

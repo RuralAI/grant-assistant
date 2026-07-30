@@ -1,5 +1,5 @@
 ---
-name: {{org-slug}}-airtable-write
+name: "{{org-slug}}-airtable-write"
 description: "Use this skill BEFORE any write to the {{ORG NAME}} Grant Pipeline (Master Model) base ({{BASE_ID}}) - any create_records_for_table, update_records_for_table, update_field, create_field, create_table, or delete call against it. This is the production base. Skills write ONLY to Grant Master rows at Stage = Possible, to Donor Master (new funders), and to Search Audit Log. Grant Master rows at any other Stage, and the operator context tables (Active Grants (Pre-Award), Portfolio (Post-Award), Watchlist, Archive, Active Donors, Donor Restriction Log) and Our Org Profile, are off-limits to writes - the operator promotes and dispositions manually by flipping Stage and linking context rows. This skill encodes the write discipline (re-read live schema first, never write computed fields, exact option strings, funder-name dedup, no orphaned data) plus the base/table/field map. Trigger it whenever the task writes a scanned grant or donor, logs an audit cycle, or edits any record in this base - even if the user just says 'add this to Airtable.'"
 ---
 

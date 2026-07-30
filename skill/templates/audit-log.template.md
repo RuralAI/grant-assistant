@@ -1,5 +1,5 @@
 ---
-name: {{org-slug}}-audit-log
+name: "{{org-slug}}-audit-log"
 description: "Use this skill whenever recording what happened in a {{ORG NAME}} grant-pipeline work session into the Search Audit Log table - after a prospect scan, a scoring pass, or a cleanup/maintenance round. It defines what an honest audit-log entry contains, including the distinction between a discovery scan and a maintenance cycle, and how to record coverage, stopping rationale, and carried-forward items. Trigger it whenever the user says 'log this', 'add an audit entry', 'record this round', or at the close of any scan/scoring/cleanup pass, and pair it with the airtable-write skill for the actual write."
 ---
 

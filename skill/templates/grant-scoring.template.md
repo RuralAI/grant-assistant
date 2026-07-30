@@ -1,5 +1,5 @@
 ---
-name: {{org-slug}}-grant-scoring
+name: "{{org-slug}}-grant-scoring"
 description: "Use this skill whenever evaluating or scoring a grant opportunity for {{ORG NAME}} - assessing fit, deciding pursue/watchlist/reject, rating an opportunity, or judging whether the org should apply. It scores fit objectively (/20) and readiness qualitatively, reports them separately, verifies against primary sources before scoring, applies visible downgrade layers, gives honest pushback, and reads the org's judgment layer (stage posture, award bands, fit criteria, durable rules, loan posture, eligibility traps) live from the Our Org Profile table so the skill never needs updating as the org evolves. Trigger it even when phrased casually ('is this grant worth it', 'should we go for this one', 'score this opportunity', 'evaluate this funder'), and apply it before writing any score into Airtable."
 ---
 

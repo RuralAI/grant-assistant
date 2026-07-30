@@ -1,5 +1,5 @@
 ---
-name: {{org-slug}}-prospect-scan
+name: "{{org-slug}}-prospect-scan"
 description: "Use this skill when running a funding-discovery or prospect scan for {{ORG NAME}} - searching for grant opportunities, scanning donor prospects, looking for funders the org should pursue, or doing a 'find me grants' / 'what funding is out there' pass. It encodes the prioritized, geographic-search-enabled, verify-then-score, honestly-logged scan procedure, including how to handle prospects that turn out to be relationship-only rather than open grants, reads the org's search geography, funding priorities, and eligibility traps live from Our Org Profile, dedups against the single Grant Master table by Stage, and writes discovered opportunities to Grant Master at Stage = Possible via the airtable-write skill. Trigger it whenever the task is discovery (finding new opportunities) as opposed to scoring one already-identified opportunity, and pair it with the grant-scoring and airtable-write skills."
 ---
 

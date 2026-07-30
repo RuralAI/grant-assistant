@@ -1,5 +1,5 @@
 ---
-name: {{org-slug}}-grant-writing
+name: "{{org-slug}}-grant-writing"
 description: "Use this skill when drafting grant application materials for {{ORG NAME}} - an LOI, an organizational overview, a needs statement, a project narrative, a funding-request narrative, or answers to specific application questions for a grant the org is pursuing. It reads the org's identity, stage posture, evidence limits, programs, and voice rules live from the Our Org Profile table, and the target grant's funder, amounts, program area, and scoring pushback from Grant Master, so every draft is grounded in the same data the pipeline runs on. It drafts ONLY for grants the operator has promoted to Stage = Active (promotion IS the pursuit decision), marks every unverifiable claim as a visible gap rather than inventing evidence, and produces drafts for human review - it never submits, sends, or finalizes anything. Trigger it when the user says 'draft the LOI for X', 'help me write the narrative for X', 'answer these application questions', or similar, and pair it with the grant-scoring skill (whose pushback it reads) and Our Org Profile."
 ---
 
