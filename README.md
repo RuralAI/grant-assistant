@@ -2,7 +2,7 @@
 
 A grant-pipeline system for nonprofits, built on Claude + Airtable. Your organization fills out one seed document, runs one installer, and in about 15 minutes has a working system: a grants database, your existing grants and funders already loaded, and four custom Claude skills that find, evaluate, record, and log grant opportunities for you.
 
-**Status:** v0.2 — proven in production and in a first commercial installation (July 2026).
+**Status:** v1.1 — proven in production and in a first commercial installation (July 2026).
 
 ---
 
