@@ -4,10 +4,6 @@ All notable changes to the Grant Assistant installer, generated skills, and seed
 
 This project does not yet follow strict [Semantic Versioning](https://semver.org/) — version numbers here track the installer's own `SKILL.md` header (e.g. "v1.0"). See `CONTRIBUTING.md` for what counts as a breaking change and when a version bump is warranted.
 
-## [Unreleased]
-
-- Further grant-writing skill refinements (feedback pending from the grant lead).
-
 ## [1.1] — 2026-07-25
 
 **Headline changes:** the base now reads like grant-management software rather than a schema — lifecycle-labelled table names, a real Watchlist stage with its own statuses, and a pre-award pipeline that walks LOI-to-proposal. Plus multi-profile support, fixing a limitation found in live testing.
