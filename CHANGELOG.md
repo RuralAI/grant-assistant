@@ -1,73 +1,80 @@
 # Changelog
 
-All notable changes to the Grant Assistant installer, generated skills, and seed template are recorded here. Dates reflect when a change was validated/shipped, not necessarily when a PR was opened.
+All notable changes to the Grant Assistant. Format follows [Keep a Changelog](https://keepachangelog.com/): every release heading carries an **Operator impact** line stating what, if anything, you need to reinstall. The top version heading is this pilot's version of record; the same number is stamped under the H1 of every skill.
 
-This project does not yet follow strict [Semantic Versioning](https://semver.org/) — version numbers here track the installer's own `SKILL.md` header (e.g. "v1.0"). See `CONTRIBUTING.md` for what counts as a breaking change and when a version bump is warranted.
+Versions before 1.2.0 predate SemVer here and were labeled v0.2/v1.0/v1.1; they are renumbered below for continuity. Operator impact lines on those entries were written retroactively.
 
-## [1.1] — 2026-07-25
+## [Unreleased]
 
-**Headline changes:** the base now reads like grant-management software rather than a schema — lifecycle-labelled table names, a real Watchlist stage with its own statuses, and a pre-award pipeline that walks LOI-to-proposal. Plus multi-profile support, fixing a limitation found in live testing.
+- 2.0.0 planned: adjacency field + three scan modes (standard / adjacency / donor), scoring show-your-work output, and any schema alignment items batched with them.
 
-### Added
-- **`Watchlist` table and Grant Master `Stage` option.** Good-fit grants you're deliberately not pursuing yet now have a real home instead of cluttering the Possible queue. Statuses: Awaiting Next Cycle / Not Yet Eligible / Low Priority / Emerging Fit / Relationship Needed / Monitoring, plus Next Review Date and a **What Would Need to Change** field that turns a vague "someday" into an actual checklist. Structurally it mirrors Active/Awarded/Archived: Stage on the master, context row for the details.
-- **Multi-profile support via a `Profile Name` field on Our Org Profile.** Live testing found the skills assumed exactly one profile row, so a second profile was unreachable. Skills now default to the first row and **state which profile they used**; an explicitly named profile is matched on Profile Name; a named profile that doesn't exist causes a halt with the available names listed, never a silent fallback. Useful for modelling a fiscally sponsored project versus independent status, distinct programs, or testing a different posture without disturbing real settings.
-- **Six new `Application Status` options on Active Grants (Pre-Award)** (four → eight), walking a pursuit through its real sequence: Researching → Preparing LOI → LOI Submitted - Awaiting Decision → Preparing Full Proposal → Full Proposal Submitted - Awaiting Decision, then one of three terminal signposts (Awarded - In Portfolio / Declined - In Archive / Withdrawn - In Archive).
-- **FAQ: a "build one view per stage" best practice** — the highest-value habit for keeping a single-source-of-truth table readable, with named example views per Stage.
-- **FAQ: a multi-profile section**, including the practical tip of keeping separate chat windows per profile.
+## [1.2.0] - 2026-08-05
 
-### Changed
-- Installer version bumped **v1.0 → v1.1**.
-- **Table renames** (breaking): `Org Profile` → `Our Org Profile`; `Portfolio` → `Portfolio (Post-Award)`; `Active Grants` → `Active Grants (Pre-Award)`. Airtable preserves table and field IDs through a rename, so no data moves and no links break — but generated skills resolve fields by *name*, so all five must be regenerated.
-- **`Withdrawn` removed as a Grant Master Stage** (breaking). It's a disposition, not a lifecycle stage: a withdrawn grant is now `Stage = Archived` with an Archive row reasoned "Withdrawn," which Archive already supported.
-- **Base is now ten tables, six context-table links** (was nine and five).
-- **Step 7 (Upgrade mode) rewritten** to detect three states — no `Installer Version` field (v0), `"v1.0"`, or `"v1.1"` — and apply only the relevant delta. Two data-safety rules added: never delete a select option that live records still use (check for `Stage = Withdrawn` rows first and let the operator re-file them), and never auto-map old Application Status values onto the new eight, since the old four don't carry the LOI-versus-proposal distinction and every mapping would be a guess.
-- **Upgrades involving renames now regenerate all five skills**, not just newly added ones — a departure from v1's additive-only upgrade, and called out explicitly since it changes what an upgrade run does.
-- All five templates in `skill/templates/` updated for the renames, the Watchlist stage, and the profile-selection protocol.
+**Operator impact:** Reinstall: optional (grant-assistant-startup only, if you keep the installer saved). No schema changes; no operating-skill behavior changes; existing installs are unaffected.
 
-### Notes for existing installs
-Two live installs (CRAI production, and the first commercial install) predate v1.1 and will need an explicit upgrade run. No data migration is required — renames are ID-stable — but expect to re-file any rows sitting at `Stage = Withdrawn` and any Active Grants rows still using the old four statuses. The upgrade reports both rather than guessing.
-
-## [1.0] — 2026-07-24
-
-**Headline changes:** a fifth generated skill (grant-writing), a version-aware installer that can explicitly upgrade an existing v0 install, and the five generated skills' method moved from tacit conversation history into committed, versioned template files.
+Repository restructure to CRAI's pilot conventions, plus one real runtime bug fixed by the restructure itself.
 
 ### Added
-- **`skill/templates/`** — canonical, org-agnostic source files for all five generated skills (`grant-scoring.template.md`, `prospect-scan.template.md`, `airtable-write.template.md`, `audit-log.template.md`, `grant-writing.template.md`) plus a `README.md` explaining the by-name templating convention. Previously the installer's Step 4 generated these from "the validated full-fidelity production skill set" — a phrase that only meant something in the context of prior conversation history. A fresh Claude session with no memory of this project can now run the installer correctly from the repo alone.
-- **Grant-writing skill** (`<org-slug>-grant-writing`) — the fifth operating skill. Drafts LOIs, narratives, and application answers grounded in Org Profile and Grant Master data. Gates on Stage = Active (promotion is the pursuit decision); reads the scoring skill's honest pushback as a writing input and must not contradict it; builds a claims inventory (CLAIMABLE / CLAIMABLE WITH FRAMING / GAP) before drafting so unverifiable claims become visible placeholders instead of invented evidence; never writes to Airtable or submits anything.
-- **`Installer Version` field** on Org Profile — makes a base self-describing to future installer runs. A v1 base has this field set to "v1.0"; its *absence from the schema* (not blankness) is the signal that a base predates versioning (a "v0" install).
-- **Step 7 — Upgrade mode** in the installer, for bringing an existing v0 (four-skill) install to v1. Adds the `Installer Version` field and generates/presents the grant-writing skill. **Explicit-trigger-only** — finding an existing base during normal preconditions never triggers an upgrade on its own; only a direct request does ("upgrade to v1," "add the grant-writing skill"). A routine reconcile run against a v0 base is unaffected by v1's existence unless the user asks.
-- **`LICENSE`** (Apache License 2.0, canonical text) and **`NOTICE`** at repo root.
-- **`CONTRIBUTING.md`** — maintainer documentation, split out of `README.md` (see Changed).
-- **`docs/images/`** and `SCREENSHOTS_NEEDED.md` — a capture checklist for six install-flow screenshots referenced in `INSTALL_GUIDE.md`.
-- **This file.**
+- **Step 0 in the installer (degrade, never halt):** the installer checks which bundled files actually reached the environment and routes around anything missing, provisioning from a new **Appendix A** field reference inside SKILL.md when necessary. It no longer assumes its helper files installed.
+- **Appendix A:** a complete human-readable field reference (all ten tables, every field, exact option strings, the link pass, the write scope) inside the installer's SKILL.md, kept in lockstep with `table-schema.mjs`.
+- **`skills/grant-assistant-startup/table-schema.mjs`:** the base schema as code, single canonical copy inside the skill folder.
+- **Version stamps** (`**Version:** 1.2.0 · Center for Rural AI`) under the H1 of the installer and all five skill templates, flowing into every generated skill.
+- **Repo-read install path in the README:** point Claude at this public repository and ask it to install; the release-asset download is the fallback for environments without web access.
+- **Seed template: opening data warning and closing pre-flight checklist.** Also fixed a stale line that still said the installer generates "four" operating skills (five since v1.0).
+- **New docs:** `docs/getting-started.md` (replacing INSTALL_GUIDE.md), `docs/pre-flight-checklist.md`, `docs/airtable-schema.md`, `docs/what-this-does-not-do.md`, `docs/versioning.md`.
 
 ### Changed
-- Installer version bumped **v0.2 → v1.0** in `skill/grant-assistant-startup/SKILL.md`.
-- Frontmatter description and Step 4 updated throughout for five skills instead of four.
-- Precondition logic (Step "Before you start," item 4) now routes to one of three outcomes explicitly: fresh install, Reconcile mode (Step 6, unchanged behavior), or Upgrade mode (Step 7, new) — with a hard rule that only an explicit request can select Upgrade mode.
-- Step 5 (install verification) gained a sixth check: confirming the grant-writing skill's Stage = Active gate is correctly wired, and that `Installer Version` was written.
-- **`README.md`** rewritten for a non-technical audience: plain-language Quick Start (download → prerequisites → connect → load skill → fill template → run), jargon (e.g. raw token-usage figures) replaced with practical guidance ("uses a good portion of a day's Claude usage on a Pro plan"), and the maintainer-facing "Maintaining this repo" section removed (see below).
-- **"Maintaining this repo" content moved out of `README.md` into `CONTRIBUTING.md`**, which now also documents: the `skill/templates/` source-of-truth split, the zero-leakage check habit, the frontmatter 1024-character/no-angle-brackets packaging limits (both hit in practice), the versioning rules for schema-breaking vs. non-breaking changes, and the team's current PR workflow (see below).
-- **`docs/INSTALL_GUIDE.md`**: added inline screenshot references at the six key steps; softened two troubleshooting-table explanations (workspace access, connector 403s) to plain, non-developer language; token-usage note reworded to a practical Claude-usage-budget description.
-- **Filename mismatch fixed repo-wide**: the bundled/standalone seed template file is actually named `Org-Seed-Template-BLANK.md` (hyphenated), but `SKILL.md`, `README.md`, and `INSTALL_GUIDE.md` all still referenced an underscored `Org_Seed_Template_BLANK.md` left over from an earlier rename that was never fully reconciled. All references now match the real filename.
-- **Contributor workflow documented as it's actually practiced**: PRs currently land via GitHub's web-upload UI rather than `git push`, due to git-credential friction on at least one team machine (deprecated HTTPS password auth; intermittent `gh auth login` browser-handoff failures). `CONTRIBUTING.md` now describes this path explicitly rather than assuming a frictionless local git setup.
+- **Repository layout**: `skills/` (source folders) and `install/` (packaged `.skill` files people actually install); docs reorganized as above. The skill keeps its existing name (`grant-assistant-startup`) deliberately: renaming it would force every operator to hunt stale copies, and the test that matters is operator cost.
+- **The five operating-skill templates and the blank seed template are now bundled inside the installer skill folder** (`templates/`, `seed-template.md`), so they exist at runtime. The public repo remains the freshness source when reachable.
+- **House style applied repo-wide:** no em dashes anywhere except LICENSE/NOTICE (a skill's prose is a prompt; punctuation leaks into customer-facing output).
+- **CHANGELOG reformatted** to Keep a Changelog with required Operator impact lines; versions renumbered to SemVer.
+- **Versioning model:** the version of record is this file's top heading (no npm tooling in this repo; conventions are checked by CRAI's review skill before merge). Deployment stamp semantics unchanged.
 
 ### Fixed
-- The five generated skills' Priority field option set corrected to the five options that actually exist in a live base (`High Priority`, `Medium Priority`, `High Fit / Needs Readiness Confirmation`, `Watchlist / Future Fit`, `Reject`) — earlier packaged skills and the bundled field-map reference listed two nonexistent options (`High Fit / Not Ready This Cycle`, plain `Watchlist`) that a live end-to-end test caught before any bad write occurred.
-- Write-skill error-recovery table gained a documented fix for `update_records_for_table` requiring `"id"` (not `"recordId"`) per record object — found live during the same test.
+- **A repo path is not a runtime path:** the v1.1 installer's Step 4 generated skills "from the templates committed at `skill/templates/`", a path that does not exist inside a saved `.skill` file. A cold environment running only the saved installer could not have completed Step 4. The templates are now bundled inside the skill folder, with the repo as an optional freshness source. (This failure mode was first observed on an earlier CRAI pilot; both live installs here predated the templates folder and never hit it.)
 
-## [0.2] — 2026-07 (pre-versioning "beta")
+## [1.1.0] - 2026-07-25 (released as "v1.1")
 
-The last version built before this changelog existed; reconstructed here from the repo's own history and documentation for continuity. Numbered "v0.2" in `SKILL.md`'s own header at the time, though no machine-readable version marker existed anywhere in an installed base — closing that gap was v1.0's main job.
+**Operator impact:** Reinstall all five skills after an explicit upgrade run (the release renames tables, and skills resolve fields by name). No data migration; expect to re-file any rows at the removed `Withdrawn` stage and any Active Grants rows on the old four statuses. Retroactive note: written after the fact for continuity.
 
 ### Added
-- Initial public release: the master-model Airtable schema (Grant Master / Donor Master as canonical tables with a `Stage` field driving both the grant lifecycle and the operator write-gate; five operator-only context tables — Active Grants, Portfolio, Archive, Active Donors, Donor Restriction Log — linked back via `multipleRecordLinks`).
-- The installer skill (`grant-assistant-startup`), built around a single `create_base` call plus a post-create linking pass, validated live against real connector constraints (workspace-access requirements, the base-sharing allowlist, no API-creatable `autoNumber`, funder-name-only dedup, unsearchable date fields in `search_records`).
-- The four original generated skills: grant-scoring, prospect-scan, airtable-write, audit-log — "thin," reading an org's judgment (stage posture, award bands, fit criteria, durable rules, loan posture, eligibility traps) live from an **Org Profile** table rather than having it baked in.
-- The blank seed template (`Org-Seed-Template-BLANK.md`), with instructions and worked examples per field and ten ★-required fields that halt the install if left blank.
-- `docs/INSTALL_GUIDE.md`, `README.md`.
-- First production install (Center for Rural AI) and first commercial install (July 2026), both of which fed corrections back into the installer and templates before this release.
+- **Watchlist** table and Grant Master `Stage` option, with six statuses, Next Review Date, and a "What Would Need to Change" field. Mirrors Active/Awarded/Archived structurally.
+- **Multi-profile support** via a `Profile Name` field: skills default to the first profile row and state which they used; a named profile that does not exist halts with the available names listed.
+- Six new **Application Status** options on Active Grants (Pre-Award) (four to eight), walking the LOI-to-proposal sequence with three terminal signposts.
+- FAQ: per-stage views best practice; multi-profile guidance; version-mismatch recovery including the Claude-to-Omni bulk-change handoff.
 
----
+### Changed
+- Table renames (breaking): `Org Profile` to `Our Org Profile`; `Portfolio` to `Portfolio (Post-Award)`; `Active Grants` to `Active Grants (Pre-Award)`. IDs preserved; names are what skills resolve by, hence the reinstall.
+- `Withdrawn` removed as a Stage; it is an Archive disposition reason.
+- Ten tables, six context links (was nine and five).
+- Upgrade mode rewritten with three-state version detection and two data-safety rules: never delete a select option live records still use; never auto-map ambiguous status values.
 
-*Entries above [1.0] were written retrospectively when this file was introduced. Going forward, add an `[Unreleased]` entry as you work and move it under a version heading when that version ships — see `CONTRIBUTING.md`.*
+### Fixed
+- Invalid YAML frontmatter in all five templates (unquoted `{{org-slug}}` parsed as a YAML flow mapping).
+- Orphaned filename references in the install guide (underscored template filename).
+
+## [1.0.0] - 2026-07-24 (released as "v1.0")
+
+**Operator impact:** Reinstall: none required for existing v0 installs; upgrade available on explicit request to add the grant-writing skill. Retroactive note.
+
+### Added
+- **Grant-writing skill** (fifth skill): drafts LOIs, narratives, and application answers; gates on Stage = Active; builds a claims inventory (CLAIMABLE / CLAIMABLE WITH FRAMING / GAP); reads scoring pushback as a writing input; never submits or sends anything.
+- **`Installer Version` deployment stamp** on the profile table; absence from the schema (not blankness) signals a pre-versioning base.
+- **Upgrade mode** (explicit trigger only, never automatic).
+- **`skill/templates/`:** the five generated skills' canonical sources committed to the repo rather than living in conversation history.
+- Apache 2.0 LICENSE, NOTICE, CONTRIBUTING.md, this changelog.
+
+### Changed
+- README rewritten for non-technical readers; maintainer content moved to CONTRIBUTING.md; practical usage guidance replaced raw token figures.
+
+### Fixed
+- Repo-wide filename mismatch (underscored vs. hyphenated seed template name).
+- Generated skills' Priority option set corrected to the five options that exist in a live base, caught by an end-to-end test before any bad write.
+
+## [0.2.0] - 2026-07 (released as "v0.2", pre-versioning beta)
+
+**Operator impact:** n/a (initial public release). Retroactive note.
+
+### Added
+- Initial public release: the master-model schema (Grant Master / Donor Master, `Stage` as lifecycle and operator write-gate, operator-only context tables linked via a post-create pass); the installer skill built around one `create_base` call, validated against live connector constraints (workspace access, base-scope allowlists, no API `autoNumber`, funder-name dedup, unsearchable date fields); the four original thin skills reading judgment live from the profile table; the blank seed template with worked examples and ★ required fields; install guide and README.
+- First production install (Center for Rural AI) and first commercial install (July 2026), both feeding corrections back before this release.

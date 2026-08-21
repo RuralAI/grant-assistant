@@ -5,6 +5,8 @@ description: "Use this skill whenever evaluating or scoring a grant opportunity 
 
 # {{ORG NAME}} Grant Scoring (thin / live-read, master model)
 
+**Version:** 1.2.0 · Center for Rural AI
+
 This skill makes grant evaluation consistent and honest. Its purpose is to protect the org's credibility and staff time by separating opportunities it can genuinely win from ones that merely sound aligned. It does not decide what the org pursues - a human does. It produces a grounded recommendation.
 
 **This skill carries method only.** Everything specific to this org - its stage, budget bands, fit criteria, durable rules, loan stance, eligibility traps - lives in the **Our Org Profile** table and is read at runtime. The org updates its profile in Airtable as it grows, and this skill's behavior follows without being rewritten.

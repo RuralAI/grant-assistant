@@ -5,6 +5,8 @@ description: "Use this skill when running a funding-discovery or prospect scan f
 
 # {{ORG NAME}} Prospect Scan (thin / live-read, master model)
 
+**Version:** 1.2.0 · Center for Rural AI
+
 This skill runs a funding-discovery pass producing a small number of genuinely-verified, scored opportunities plus an honest record of what was and wasn't covered. Conservative by design: a few real, well-verified opportunities beat a long list of thin entries. Quality and honesty over volume. A human reviews and decides pursuit; this scan surfaces, scores, and recommends.
 
 **Production base: `{{BASE_ID}}` "{{BASE_NAME}}".** Do NOT read from or write to any base whose name carries a "- RETIRE" suffix.
