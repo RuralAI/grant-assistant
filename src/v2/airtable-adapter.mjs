@@ -1,3 +1,4 @@
+import {verifyAirtableSchema,encodeAirtable,decodeAirtable} from "./airtable-codecs.mjs";
 // Airtable adapter for Grant Assistant v2. Dependency-injected transport; no credentials or live writes.
 // Transport: listRecords({baseId,tableId,offset,pageSize}), createRecord({baseId,tableId,fields}),
 // updateRecord({baseId,tableId,recordId,fields}). All methods return Airtable-shaped objects.
@@ -29,7 +30,12 @@ function validateConfig(config){
     check(targets.every(x=>typeof x==="string"&&x.length>0)&&new Set(targets).size===targets.length,"CONFIG","field mappings must be unique");
   }
 }
-export function createAirtableAdapter({config,transport}){
+export function createAirtableAdapter({config,transport,schema=null}){
+  if(schema)verifyAirtableSchema(config,schema);
+  const types={};
+  if(schema)for(const [name,def] of Object.entries(config.collections)){const table=schema.tables.find(t=>t.id===def.tableId);types[name]=Object.fromEntries(Object.entries(def.fields).map(([logical,physical])=>[logical,table.fields.find(f=>f.id===physical).type]));}
+  const decode=(collection,fields)=>{const value=fieldsToLogical(fields,config.collections[collection].fields);for(const [k,v] of Object.entries(value))if(types[collection]?.[k])value[k]=decodeAirtable(v,types[collection][k],{json:typeof v==="string"&&v.startsWith("[")&&["singleLineText","multilineText"].includes(types[collection][k])});return value;};
+  const encode=(collection,value)=>{const transformed={...value};for(const [k,v] of Object.entries(transformed))if(types[collection]?.[k])transformed[k]=encodeAirtable(v,types[collection][k]);return logicalToFields(transformed,config.collections[collection].fields);};
   validateConfig(config);
   check(transport&&typeof transport.listRecords==="function"&&typeof transport.createRecord==="function"&&typeof transport.updateRecord==="function","CONFIG","transport methods required");
   async function rows(collection){
@@ -38,7 +44,7 @@ export function createAirtableAdapter({config,transport}){
     do{
       const page=await transport.listRecords({baseId:config.baseId,tableId:def.tableId,offset,pageSize:100});
       check(page&&Array.isArray(page.records),"TRANSPORT","invalid Airtable list response");
-      for(const r of page.records){check(typeof r.id==="string"&&r.fields&&typeof r.fields==="object","TRANSPORT","invalid Airtable record");all.push({recordId:r.id,value:fieldsToLogical(r.fields,def.fields)});}
+      for(const r of page.records){check(typeof r.id==="string"&&r.fields&&typeof r.fields==="object","TRANSPORT","invalid Airtable record");all.push({recordId:r.id,value:decode(collection,r.fields)});}
       offset=page.offset||null;
       if(offset){check(!offsets.has(offset),"TRANSPORT","repeated pagination cursor");offsets.add(offset);}
     }while(offset);
@@ -90,16 +96,16 @@ export function createAirtableAdapter({config,transport}){
     check(result.ok,"VALIDATION",JSON.stringify(result.errors));
     const normalized=result.value;
     // No-op detection compares only fields in configured mapping, not provider metadata.
-    const target=logicalToFields(normalized,def.fields);
+    const target=encode(collection,normalized);
     if(existing){
-      const old=logicalToFields(existing.value,def.fields);
+      const old=encode(collection,existing.value);
       const changes={};for(const [k,v] of Object.entries(target))if(!equal(old[k],v))changes[k]=v;
       if(Object.keys(changes).length===0)return {action:"unchanged",logicalId:key,recordId:existing.recordId};
-      const response=await transport.updateRecord({baseId:config.baseId,tableId:def.tableId,recordId:existing.recordId,fields:changes});
+      // Recheck before writing; fail closed on intervening edits. This is not an atomic CAS.\n      const fresh=(await rows(collection)).filter(r=>r.value[idField]===key);\n      check(fresh.length===1 && fresh[0].recordId===existing.recordId,"CONFLICT","record changed or disappeared");\n      check(equal(fresh[0].value,existing.value),"CONFLICT","record changed since read");\n      const response=await transport.updateRecord({baseId:config.baseId,tableId:def.tableId,recordId:existing.recordId,fields:changes});
       check(response?.id===existing.recordId,"TRANSPORT","update response identity mismatch");
       return {action:"updated",logicalId:key,recordId:existing.recordId};
     }
-    const response=await transport.createRecord({baseId:config.baseId,tableId:def.tableId,fields:target});
+    // Recheck identity and duplicate candidates immediately before creation.\n    const fresh=await rows(collection);\n    check(!fresh.some(r=>r.value[idField]===key),"CONFLICT","logical identity appeared during create");\n    if(collection==="grants"){\n      const keys=[duplicateKey(normalized)];\n      const urlKey=normalized.source_url?("url:"+new URL(normalized.source_url).href.replace(/\\/$/,"")+":cycle:"+(normalized.opportunity_cycle||"").trim().toLowerCase()):null;\n      if(urlKey)keys.push(urlKey);\n      for(const row of fresh){const g=row.value;const existingKey=duplicateKey(g);const existingUrl=g.source_url?("url:"+new URL(g.source_url).href.replace(/\\/$/,"")+":cycle:"+(g.opportunity_cycle||"").trim().toLowerCase()):null;\n        check(!keys.some(k=>k&&(k===existingKey||k===existingUrl)),"DUPLICATE","duplicate opportunity requires manual resolution");\n      }\n    }\n    const response=await transport.createRecord({baseId:config.baseId,tableId:def.tableId,fields:target});
     check(typeof response?.id==="string","TRANSPORT","create response missing record ID");
     return {action:"created",logicalId:key,recordId:response.id};
   }
