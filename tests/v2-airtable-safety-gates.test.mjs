@@ -1,0 +1,16 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {createAirtableAdapter} from "../src/v2/airtable-adapter.mjs";
+import {createAirtableHttpTransport,AirtableAmbiguousWriteError} from "../src/v2/airtable-http.mjs";
+const config={baseId:"appTEST",collections:{organizations:{tableId:"tblORG",fields:{organization_id:"fldID",name:"fldNAME",updated_at:"fldTIME"},codecs:{organization_id:"text",name:"text",updated_at:"timestamp"}}}};
+const schema={tables:[{id:"tblORG",fields:[{id:"fldID",type:"singleLineText"},{id:"fldNAME",type:"singleLineText"},{id:"fldTIME",type:"dateTime"}]}]};
+const transport={listRecords:async()=>({records:[]}),createRecord:async()=>({id:"rec1"}),updateRecord:async()=>({id:"rec1"})};
+const input={organization_id:"org1",name:"Organization",updated_at:"2026-11-02T12:00:00Z"};
+test("schema is mandatory",()=>assert.throws(()=>createAirtableAdapter({config,transport,authorize:async()=>true}),e=>e.code==="SCHEMA"));
+test("authorization callback is mandatory",()=>assert.throws(()=>createAirtableAdapter({config,transport,schema}),e=>e.code==="AUTH"));
+test("untrusted operator label cannot bypass authorization",async()=>{const a=createAirtableAdapter({config,transport,schema,authorize:async()=>false});await assert.rejects(()=>a.upsert("organizations",input,{actor:"operator"}),e=>e.code==="AUTH");});
+test("trusted authorization permits write",async()=>{const a=createAirtableAdapter({config,transport,schema,authorize:async()=>true});assert.equal((await a.upsert("organizations",input)).action,"created");});
+test("missing codec fails preflight",()=>{const bad=structuredClone(config);delete bad.collections.organizations.codecs.name;assert.throws(()=>createAirtableAdapter({config:bad,transport,schema,authorize:async()=>true}),e=>e.code==="CONFIG");});
+test("incompatible codec fails preflight",()=>{const bad=structuredClone(config);bad.collections.organizations.codecs.name="number";assert.throws(()=>createAirtableAdapter({config:bad,transport,schema,authorize:async()=>true}),e=>e.code==="SCHEMA");});
+test("POST network ambiguity never retries",async()=>{let calls=0;const t=createAirtableHttpTransport({token:"private",fetchImpl:async()=>{calls++;throw Error("network timeout");},wait:async()=>{}});await assert.rejects(()=>t.createRecord({baseId:"appTEST",tableId:"tblORG",fields:{fldID:"org1"}}),e=>e instanceof AirtableAmbiguousWriteError);assert.equal(calls,1);});
+test("POST 503 ambiguity never retries",async()=>{let calls=0;const t=createAirtableHttpTransport({token:"private",fetchImpl:async()=>{calls++;return {ok:false,status:503,headers:{get:()=>null}};},wait:async()=>{}});await assert.rejects(()=>t.createRecord({baseId:"appTEST",tableId:"tblORG",fields:{fldID:"org1"}}),e=>e.code==="AMBIGUOUS_WRITE");assert.equal(calls,1);});
