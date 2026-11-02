@@ -101,11 +101,26 @@ export function createAirtableAdapter({config,transport,schema=null}){
       const old=encode(collection,existing.value);
       const changes={};for(const [k,v] of Object.entries(target))if(!equal(old[k],v))changes[k]=v;
       if(Object.keys(changes).length===0)return {action:"unchanged",logicalId:key,recordId:existing.recordId};
-      // Recheck before writing; fail closed on intervening edits. This is not an atomic CAS.\n      const fresh=(await rows(collection)).filter(r=>r.value[idField]===key);\n      check(fresh.length===1 && fresh[0].recordId===existing.recordId,"CONFLICT","record changed or disappeared");\n      check(equal(fresh[0].value,existing.value),"CONFLICT","record changed since read");\n      const response=await transport.updateRecord({baseId:config.baseId,tableId:def.tableId,recordId:existing.recordId,fields:changes});
+      // Recheck before writing; fail closed on intervening edits. This is not an atomic CAS.
+      const fresh=(await rows(collection)).filter(r=>r.value[idField]===key);
+      check(fresh.length===1 && fresh[0].recordId===existing.recordId,"CONFLICT","record changed or disappeared");
+      check(equal(fresh[0].value,existing.value),"CONFLICT","record changed since read");
+      const response=await transport.updateRecord({baseId:config.baseId,tableId:def.tableId,recordId:existing.recordId,fields:changes});
       check(response?.id===existing.recordId,"TRANSPORT","update response identity mismatch");
       return {action:"updated",logicalId:key,recordId:existing.recordId};
     }
-    // Recheck identity and duplicate candidates immediately before creation.\n    const fresh=await rows(collection);\n    check(!fresh.some(r=>r.value[idField]===key),"CONFLICT","logical identity appeared during create");\n    if(collection==="grants"){\n      const keys=[duplicateKey(normalized)];\n      const urlKey=normalized.source_url?("url:"+new URL(normalized.source_url).href.replace(/\\/$/,"")+":cycle:"+(normalized.opportunity_cycle||"").trim().toLowerCase()):null;\n      if(urlKey)keys.push(urlKey);\n      for(const row of fresh){const g=row.value;const existingKey=duplicateKey(g);const existingUrl=g.source_url?("url:"+new URL(g.source_url).href.replace(/\\/$/,"")+":cycle:"+(g.opportunity_cycle||"").trim().toLowerCase()):null;\n        check(!keys.some(k=>k&&(k===existingKey||k===existingUrl)),"DUPLICATE","duplicate opportunity requires manual resolution");\n      }\n    }\n    const response=await transport.createRecord({baseId:config.baseId,tableId:def.tableId,fields:target});
+    // Recheck identity and duplicate candidates immediately before creation.
+    const fresh=await rows(collection);
+    check(!fresh.some(r=>r.value[idField]===key),"CONFLICT","logical identity appeared during create");
+    if(collection==="grants"){
+      const keys=[duplicateKey(normalized)];
+      const urlKey=normalized.source_url?("url:"+new URL(normalized.source_url).href.replace(/\/$/,"")+":cycle:"+(normalized.opportunity_cycle||"").trim().toLowerCase()):null;
+      if(urlKey)keys.push(urlKey);
+      for(const row of fresh){const g=row.value;const existingKey=duplicateKey(g);const existingUrl=g.source_url?("url:"+new URL(g.source_url).href.replace(/\/$/,"")+":cycle:"+(g.opportunity_cycle||"").trim().toLowerCase()):null;
+        check(!keys.some(k=>k&&(k===existingKey||k===existingUrl)),"DUPLICATE","duplicate opportunity requires manual resolution");
+      }
+    }
+    const response=await transport.createRecord({baseId:config.baseId,tableId:def.tableId,fields:target});
     check(typeof response?.id==="string","TRANSPORT","create response missing record ID");
     return {action:"created",logicalId:key,recordId:response.id};
   }
