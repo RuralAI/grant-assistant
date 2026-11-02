@@ -1,0 +1,34 @@
+name: Grant Assistant v2 validation
+
+on:
+  push:
+    branches:
+      - develop/v2-cross-platform-storage
+    paths:
+      - 'src/v2/**'
+      - 'tests/v2-*.test.mjs'
+      - '.github/workflows/v2-validation.yml'
+  pull_request:
+    paths:
+      - 'src/v2/**'
+      - 'tests/v2-*.test.mjs'
+      - '.github/workflows/v2-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Storage-neutral unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run v2 validation tests
+        run: node --test tests/v2-normalize.test.mjs
