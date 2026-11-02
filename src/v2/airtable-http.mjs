@@ -1,6 +1,7 @@
 // Native Airtable REST transport. Injectable fetch for isolated testing.
 // Never log credentials; callers must provide an authorized token.
-export class AirtableAmbiguousWriteError extends Error {constructor(){super("Write outcome uncertain; reconcile by logical ID before retry");this.name="AirtableAmbiguousWriteError";this.code="AMBIGUOUS_WRITE";}}\nexport class AirtableHttpError extends Error {constructor(status,message){super(message);this.name="AirtableHttpError";this.status=status;}}
+export class AirtableAmbiguousWriteError extends Error {constructor(){super("Write outcome uncertain; reconcile by logical ID before retry");this.name="AirtableAmbiguousWriteError";this.code="AMBIGUOUS_WRITE";}}
+export class AirtableHttpError extends Error {constructor(status,message){super(message);this.name="AirtableHttpError";this.status=status;}}
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 export function createAirtableHttpTransport({token,fetchImpl=fetch,wait=sleep,maxRetries=3,apiRoot="https://api.airtable.com/v0"}){
   if(typeof token!=="string"||!token.trim())throw Error("Airtable token required");
@@ -13,7 +14,8 @@ export function createAirtableHttpTransport({token,fetchImpl=fetch,wait=sleep,ma
       try{response=await fetchImpl(url,{method,headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},...(fields?{body:JSON.stringify({fields})}:{})});}
       catch(e){if(method!=="GET")throw new AirtableAmbiguousWriteError();if(attempt===maxRetries)throw e;await wait(Math.min(1000*2**attempt,8000));continue;}
       if(response.ok)return response.json();
-      if(method!=="GET" && (response.status===429||response.status>=500))throw new AirtableAmbiguousWriteError();\n      if((response.status===429||response.status>=500)&&attempt<maxRetries){
+      if(method!=="GET" && (response.status===429||response.status>=500))throw new AirtableAmbiguousWriteError();
+      if((response.status===429||response.status>=500)&&attempt<maxRetries){
         const retry=Number(response.headers.get("retry-after"));
         await wait(Number.isFinite(retry)&&retry>0?Math.min(retry*1000,30000):Math.min(1000*2**attempt,8000));continue;
       }
