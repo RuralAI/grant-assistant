@@ -34,4 +34,4 @@ Logical field names, stable IDs, explicit controlled values and reproducible aud
 - Airtable and Sheets represent the same logical record and audit trail.
 
 ## Open decisions
-Exact minimum field list and controlled vocabularies; whether search profiles require a separate table; partner role storage; exact UX/navigation in Sheets; onboarding conditional logic; how to migrate existing installations. Jackson's feedback and Holden's technical review required before finalization.
+Exact minimum field list and controlled vocabularies; whether search profiles require a separate table; partner role storage; exact UX/navigation in Sheets; onboarding conditional logic; how to migrate existing installations. Jackson's feedback and technical review required before finalization.
