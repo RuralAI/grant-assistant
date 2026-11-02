@@ -30,12 +30,12 @@ function validateConfig(config){
     check(targets.every(x=>typeof x==="string"&&x.length>0)&&new Set(targets).size===targets.length,"CONFIG","field mappings must be unique");
   }
 }
-export function createAirtableAdapter({config,transport,schema=null}){
-  if(schema)verifyAirtableSchema(config,schema);
+export function createAirtableAdapter({config,transport,schema=null,authorize=null}){
+  validateConfig(config);\n  check(Boolean(schema),"SCHEMA","Airtable metadata preflight is mandatory");\n  verifyAirtableSchema(config,schema);\n  check(typeof authorize==="function","AUTH","trusted authorization callback required");\n  for(const [name,def] of Object.entries(config.collections)){\n    check(def.codecs&&typeof def.codecs==="object","CONFIG","explicit codecs required for "+name);\n    for(const logical of Object.keys(def.fields)){\n      check(["text","json","number","boolean","date","timestamp","select"].includes(def.codecs[logical]),"CONFIG","explicit codec required for "+name+"."+logical);\n      const type=schema.tables.find(t=>t.id===def.tableId).fields.find(f=>f.id===def.fields[logical]).type;\n      const allowed={text:["singleLineText","multilineText","email","phoneNumber","url"],json:["multilineText","singleLineText"],number:["number","currency","percent"],boolean:["checkbox"],date:["date"],timestamp:["dateTime"],select:["singleSelect"]};\n      check(allowed[def.codecs[logical]].includes(type),"SCHEMA","incompatible codec "+name+"."+logical);\n    }\n  }
   const types={};
   if(schema)for(const [name,def] of Object.entries(config.collections)){const table=schema.tables.find(t=>t.id===def.tableId);types[name]=Object.fromEntries(Object.entries(def.fields).map(([logical,physical])=>[logical,table.fields.find(f=>f.id===physical).type]));}
-  const decode=(collection,fields)=>{const value=fieldsToLogical(fields,config.collections[collection].fields);for(const [k,v] of Object.entries(value))if(types[collection]?.[k])value[k]=decodeAirtable(v,types[collection][k],{json:typeof v==="string"&&v.startsWith("[")&&["singleLineText","multilineText"].includes(types[collection][k])});return value;};
-  const encode=(collection,value)=>{const transformed={...value};for(const [k,v] of Object.entries(transformed))if(types[collection]?.[k])transformed[k]=encodeAirtable(v,types[collection][k]);return logicalToFields(transformed,config.collections[collection].fields);};
+  const decode=(collection,fields)=>{const value=fieldsToLogical(fields,config.collections[collection].fields);for(const [k,v] of Object.entries(value))value[k]=decodeAirtable(v,types[collection][k],{json:config.collections[collection].codecs[k]==="json"});return value;};
+  const encode=(collection,value)=>{const transformed={};for(const k of Object.keys(config.collections[collection].fields)){const v=value[k];if(v!==undefined&&v!==null)transformed[k]=encodeAirtable(v,types[collection][k]);}return logicalToFields(transformed,config.collections[collection].fields);};
   validateConfig(config);
   check(transport&&typeof transport.listRecords==="function"&&typeof transport.createRecord==="function"&&typeof transport.updateRecord==="function","CONFIG","transport methods required");
   async function rows(collection){
@@ -57,9 +57,9 @@ export function createAirtableAdapter({config,transport,schema=null}){
     check(found.length<=1,"COLLISION","multiple Airtable rows share logical ID");
     return found.length?{...found[0].value}:null;
   }
-  async function upsert(collection,input,{actor="agent",allowCreate=true}={}){
+  async function upsert(collection,input,{actor="agent",allowCreate=true,authorization=null}={}){
     check(Boolean(validators[collection])&&Boolean(config.collections[collection]),"CONFIG","collection not configured");
-    check(actor==="agent"||actor==="operator","ACTOR","actor must be agent or operator");
+    check(actor==="agent"||actor==="operator","ACTOR","actor must be agent or operator");\n    check(await authorize({actor,collection,operation:"upsert",authorization,input})===true,"AUTH","write not authorized");
     const validator=validators[collection],idField=ids[collection],def=config.collections[collection];
     check(input&&typeof input==="object"&&!Array.isArray(input),"VALIDATION","record object required");
     const key=input[idField];check(typeof key==="string"&&key.trim(),"IDENTITY","logical ID required");
