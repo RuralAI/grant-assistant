@@ -31,7 +31,19 @@ function validateConfig(config){
   }
 }
 export function createAirtableAdapter({config,transport,schema=null,authorize=null}){
-  validateConfig(config);\n  check(Boolean(schema),"SCHEMA","Airtable metadata preflight is mandatory");\n  verifyAirtableSchema(config,schema);\n  check(typeof authorize==="function","AUTH","trusted authorization callback required");\n  for(const [name,def] of Object.entries(config.collections)){\n    check(def.codecs&&typeof def.codecs==="object","CONFIG","explicit codecs required for "+name);\n    for(const logical of Object.keys(def.fields)){\n      check(["text","json","number","boolean","date","timestamp","select"].includes(def.codecs[logical]),"CONFIG","explicit codec required for "+name+"."+logical);\n      const type=schema.tables.find(t=>t.id===def.tableId).fields.find(f=>f.id===def.fields[logical]).type;\n      const allowed={text:["singleLineText","multilineText","email","phoneNumber","url"],json:["multilineText","singleLineText"],number:["number","currency","percent"],boolean:["checkbox"],date:["date"],timestamp:["dateTime"],select:["singleSelect"]};\n      check(allowed[def.codecs[logical]].includes(type),"SCHEMA","incompatible codec "+name+"."+logical);\n    }\n  }
+  validateConfig(config);
+  check(Boolean(schema),"SCHEMA","Airtable metadata preflight is mandatory");
+  verifyAirtableSchema(config,schema);
+  check(typeof authorize==="function","AUTH","trusted authorization callback required");
+  for(const [name,def] of Object.entries(config.collections)){
+    check(def.codecs&&typeof def.codecs==="object","CONFIG","explicit codecs required for "+name);
+    for(const logical of Object.keys(def.fields)){
+      check(["text","json","number","boolean","date","timestamp","select"].includes(def.codecs[logical]),"CONFIG","explicit codec required for "+name+"."+logical);
+      const type=schema.tables.find(t=>t.id===def.tableId).fields.find(f=>f.id===def.fields[logical]).type;
+      const allowed={text:["singleLineText","multilineText","email","phoneNumber","url"],json:["multilineText","singleLineText"],number:["number","currency","percent"],boolean:["checkbox"],date:["date"],timestamp:["dateTime"],select:["singleSelect"]};
+      check(allowed[def.codecs[logical]].includes(type),"SCHEMA","incompatible codec "+name+"."+logical);
+    }
+  }
   const types={};
   if(schema)for(const [name,def] of Object.entries(config.collections)){const table=schema.tables.find(t=>t.id===def.tableId);types[name]=Object.fromEntries(Object.entries(def.fields).map(([logical,physical])=>[logical,table.fields.find(f=>f.id===physical).type]));}
   const decode=(collection,fields)=>{const value=fieldsToLogical(fields,config.collections[collection].fields);for(const [k,v] of Object.entries(value))value[k]=decodeAirtable(v,types[collection][k],{json:config.collections[collection].codecs[k]==="json"});return value;};
@@ -59,7 +71,8 @@ export function createAirtableAdapter({config,transport,schema=null,authorize=nu
   }
   async function upsert(collection,input,{actor="agent",allowCreate=true,authorization=null}={}){
     check(Boolean(validators[collection])&&Boolean(config.collections[collection]),"CONFIG","collection not configured");
-    check(actor==="agent"||actor==="operator","ACTOR","actor must be agent or operator");\n    check(await authorize({actor,collection,operation:"upsert",authorization,input})===true,"AUTH","write not authorized");
+    check(actor==="agent"||actor==="operator","ACTOR","actor must be agent or operator");
+    check(await authorize({actor,collection,operation:"upsert",authorization,input})===true,"AUTH","write not authorized");
     const validator=validators[collection],idField=ids[collection],def=config.collections[collection];
     check(input&&typeof input==="object"&&!Array.isArray(input),"VALIDATION","record object required");
     const key=input[idField];check(typeof key==="string"&&key.trim(),"IDENTITY","logical ID required");
