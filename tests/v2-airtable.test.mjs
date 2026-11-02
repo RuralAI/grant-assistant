@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {createAirtableAdapter,AdapterError} from "../src/v2/airtable-adapter.mjs";
 const baseId="appTEST",tableId="tblTEST";
 const mapped=["grant_id","title","source_url","source_system","source_record_id","opportunity_cycle","stage","operator_notes","eligibility_status","readiness_status","fit_score"];
-const config={baseId,collections:{grants:{tableId,fields:Object.fromEntries(mapped.map(x=>[x,x])),codecs:Object.fromEntries(mapped.map(x=>[x,x==="fit_score"?"number": "text"]))}}};\nconst schema={tables:[{id:tableId,fields:mapped.map(x=>({id:x,type:x==="fit_score"?"number":"singleLineText"}))}]};\nconst authorize=async()=>true;
+const config={baseId,collections:{grants:{tableId,fields:Object.fromEntries(mapped.map(x=>[x,x])),codecs:Object.fromEntries(mapped.map(x=>[x,x==="fit_score"?"number": "text"]))}}};
+const schema={tables:[{id:tableId,fields:mapped.map(x=>({id:x,type:x==="fit_score"?"number":"singleLineText"}))}]};
+const authorize=async()=>true;
 const grant={grant_id:"g1",title:"Grant",source_url:"https://example.org/g",stage:"possible",eligibility_status:"unknown",readiness_status:"unknown"};
 function fixture(seed=[]){
   let records=structuredClone(seed),writes=0;
