@@ -31,4 +31,4 @@ jobs:
         with:
           node-version: '22'
       - name: Run v2 validation tests
-        run: node --test tests/v2-normalize.test.mjs
+        run: node --test tests/v2-*.test.mjs
