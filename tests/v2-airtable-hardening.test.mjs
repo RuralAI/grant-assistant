@@ -1,0 +1,17 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {verifyAirtableSchema,encodeAirtable,decodeAirtable} from "../src/v2/airtable-codecs.mjs";
+import {createAirtableHttpTransport,AirtableHttpError} from "../src/v2/airtable-http.mjs";
+import {createAirtableAdapter} from "../src/v2/airtable-adapter.mjs";
+const config={baseId:"appTEST",collections:{organizations:{tableId:"tblORG",fields:{organization_id:"fldID",name:"fldNAME",updated_at:"fldTIME"}}}};
+const schema={tables:[{id:"tblORG",fields:[{id:"fldID",type:"singleLineText"},{id:"fldNAME",type:"singleLineText"},{id:"fldTIME",type:"dateTime"}]}]};
+test("preflight verifies physical field IDs",()=>assert.equal(verifyAirtableSchema(config,schema),true));
+test("preflight rejects missing fields",()=>assert.throws(()=>verifyAirtableSchema(config,{tables:[{id:"tblORG",fields:[]}]})));
+test("preflight rejects unsupported linked field",()=>assert.throws(()=>verifyAirtableSchema(config,{tables:[{id:"tblORG",fields:schema.tables[0].fields.map(x=>x.id==="fldNAME"?{...x,type:"multipleRecordLinks"}:x)}]})));
+test("JSON arrays round trip through text fields",()=>{const v=encodeAirtable(["rural","health"],"multilineText");assert.deepEqual(decodeAirtable(v,"multilineText",{json:true}),["rural","health"]);});
+test("invalid JSON fails closed",()=>assert.throws(()=>decodeAirtable("{broken","multilineText",{json:true})));
+test("numeric field rejects string",()=>assert.throws(()=>encodeAirtable("5","number")));
+test("HTTP transport retries 429 and does not log credentials",async()=>{let calls=0,waits=0;const transport=createAirtableHttpTransport({token:"private",wait:async()=>{waits++;},fetchImpl:async()=>{calls++;return calls===1?{ok:false,status:429,headers:{get:()=>null}}:{ok:true,json:async()=>({records:[]})};}});assert.deepEqual((await transport.listRecords({baseId:"appTEST",tableId:"tblORG"})).records,[]);assert.equal(calls,2);assert.equal(waits,1);});
+test("HTTP transport does not retry unauthorized",async()=>{let calls=0;const transport=createAirtableHttpTransport({token:"private",fetchImpl:async()=>{calls++;return {ok:false,status:401,headers:{get:()=>null}};}});await assert.rejects(()=>transport.listRecords({baseId:"appTEST",tableId:"tblORG"}),e=>e instanceof AirtableHttpError&&e.status===401);assert.equal(calls,1);});
+test("HTTP transport uses PATCH for update",async()=>{let method;const transport=createAirtableHttpTransport({token:"private",fetchImpl:async(_url,opts)=>{method=opts.method;return {ok:true,json:async()=>({id:"rec1"})};}});await transport.updateRecord({baseId:"appTEST",tableId:"tblORG",recordId:"rec1",fields:{fldNAME:"Test"}});assert.equal(method,"PATCH");});
+test("pre-write recheck catches intervening human edit",async()=>{let calls=0,writes=0;const transport={listRecords:async()=>{calls++;return {records:[{id:"rec1",fields:{fldID:"org1",fldNAME:calls===1?"Original":"Human edit",fldTIME:"2026-11-02T12:00:00Z"}}]};},createRecord:async()=>{writes++;},updateRecord:async()=>{writes++;}};const adapter=createAirtableAdapter({config,transport,schema});await assert.rejects(()=>adapter.upsert("organizations",{organization_id:"org1",name:"Automated change"}),e=>e.code==="CONFLICT");assert.equal(writes,0);});
