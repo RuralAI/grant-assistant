@@ -118,7 +118,7 @@ export function normalizeProfile(input) {
   for (const f of ["funding_preferences","programs"]) if (!Array.isArray(value[f]) || value[f].some(v=>!obj(v))) errors.push(fail(f,"must be array of objects"));
   if (value.federal_search_enabled!==null && typeof value.federal_search_enabled!=="boolean") errors.push(fail("federal_search_enabled","must be boolean"));
   if (value.federal_search_enabled===true && (!value.sam_registration_status || !value.uei_status)) errors.push(fail("federal_registration","registration readiness must be recorded; unknown is valid"));
-  if (value.founded_year!==null && (!Number.isInteger(value.founded_year)||value.founded_year<1800||value.founded_year>new Date().getUTCFullYear())) errors.push(fail("founded_year","invalid year"));
+  if (value.founded_year!==null && (!Number.isInteger(value.founded_year)||value.founded_year<1800||value.founded_year>2100)) errors.push(fail("founded_year","invalid year"));
   if (value.audited_financial_years!==null && (!Number.isInteger(value.audited_financial_years)||value.audited_financial_years<0)) errors.push(fail("audited_financial_years","invalid count"));
   if (value.preferred_award_min!==null && value.preferred_award_max!==null && value.preferred_award_min>value.preferred_award_max) errors.push(fail("preferred_award_max","less than minimum"));
   if ((value.annual_budget!==null||value.preferred_award_min!==null||value.preferred_award_max!==null)&&!value.currency) errors.push(fail("currency","required for monetary values"));
