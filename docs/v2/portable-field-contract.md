@@ -107,5 +107,5 @@ search_profile_id, profile_id, name, search_terms, geography_override, beneficia
 - Sheets: one named tab per logical collection used; stable headers, JSON serialization for arrays, UUID lookups (never row-number joins), read-before-write and collision detection.
 - Maintain per-install field mapping and migration version. No destructive schema changes without operator approval.
 
-## Open for Jackson/Holden
+## Open for product and technical review
 Requiredness of financial answers, exact controlled vocabularies, contact-field privacy, per-grant role structure, profile selection UX, source URL fallback for unverified leads, and whether physical tables beyond the four core collections are warranted.
