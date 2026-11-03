@@ -35,3 +35,10 @@ Branch: develop/v2-cross-platform-storage
 - The account-wide Airtable base listing omits workspaceId. The CLI's strict automatic reuse requires verified workspace identity and therefore currently stops for review on a matching base without that identity.
 - The live test base was successfully discovered and inspected through connected Airtable tools, but a credentialed CLI end-to-end reconnection test was **not** performed. Do not claim it passed.
 - A narrow resolution is needed: verified workspace membership or explicit operator selection of the discovered base ID, while maintaining protection against cross-workspace accidental reuse.
+
+## Reconnection remediation — 2026-11-03
+- Added explicit --base-id selection to the installer CLI for matching existing bases when account-wide metadata omits workspace membership.
+- Requires both an exact discovered base ID and the same selectedBaseId in approval; verifies schema before reconnecting. Refuses replacement creation when a selected base is absent.
+- Added three negative/positive tests for selected-base reconnection. CI run 41654054103: 89/89 passed.
+- This is a simulated reconnection test against the actual provisioning plan, not a credentialed execution of the CLI against Airtable. The existing live base was inspected with the connected Airtable tools and its CRUD smoke test passed.
+- No further live bases or records were created by this remediation.
