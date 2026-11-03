@@ -42,3 +42,17 @@ test("I07 same-name base without verified workspace blocks reuse and creation",a
 test("I08 no approval blocks reuse as well as creation",async()=>{
  await assert.rejects(()=>installAirtableInspectionFirst({plan,discovery:{listBases:async()=>[{id:"appExisting",name:plan.baseName,workspaceId:plan.workspaceId}]},transport:{getBaseSchema:async()=>schema}}),e=>e.code==="AUTH");
 });
+
+test("I09 explicitly selected existing base reconnects when workspace metadata is absent",async()=>{
+ let creates=0;
+ const r=await installAirtableInspectionFirst({plan,approval:{...approval,selectedBaseId:"appExisting"},selectedBaseId:"appExisting",discovery:{listBases:async()=>[{id:"appExisting",name:plan.baseName}]},transport:{getBaseSchema:async()=>schema,createBase:async()=>{creates++}}});
+ assert.equal(r.status,"existing");assert.equal(creates,0);
+});
+test("I10 mismatched selected base ID refuses connection",async()=>{
+ await assert.rejects(()=>installAirtableInspectionFirst({plan,approval:{...approval,selectedBaseId:"appWrong"},selectedBaseId:"appWrong",discovery:{listBases:async()=>[{id:"appExisting",name:plan.baseName}]},transport:{getBaseSchema:async()=>schema}}),e=>e.code==="REVIEW");
+});
+test("I11 selected base absent cannot trigger replacement creation",async()=>{
+ let creates=0;
+ await assert.rejects(()=>installAirtableInspectionFirst({plan,approval:{...approval,selectedBaseId:"appMissing"},selectedBaseId:"appMissing",discovery:{listBases:async()=>[]},transport:{getBaseSchema:async()=>schema,createBase:async()=>{creates++}}}),e=>e.code==="REVIEW");
+ assert.equal(creates,0);
+});
