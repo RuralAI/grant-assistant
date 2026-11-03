@@ -1,0 +1,13 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {buildAirtableProvisioningPlan} from "../src/v2/airtable-provisioning.mjs";
+import {executeExclusiveAirtableProvisioning,provisioningPlanDigest} from "../src/v2/airtable-provisioning-exclusive.mjs";
+const p=()=>buildAirtableProvisioningPlan({workspaceId:"wspTEST",baseName:"Disposable"});
+const journal=()=>{const m=new Map();return {load:async k=>m.get(k),save:async(k,v)=>{m.set(k,structuredClone(v));}};};
+const coordinator={withExclusive:async(k,fn)=>fn()};
+const transport={createBase:async()=>({id:"appTEST"}),getBaseSchema:async()=>({tables:p().tables.map((t,i)=>({id:"tbl"+i,name:t.name,fields:t.fields.map((f,j)=>({...structuredClone(f),id:"fld"+i+"_"+j}))}))})};
+const approve=(plan,id)=>({approved:true,installationId:id,workspaceId:plan.workspaceId,baseName:plan.baseName,contractVersion:plan.contractVersion,planDigest:provisioningPlanDigest(plan)});
+test("H01 exact-plan digest required before writes",async()=>{const plan=p(),j=journal();await assert.rejects(()=>executeExclusiveAirtableProvisioning({plan,approval:{...approve(plan,"one"),planDigest:"bad"},journal:j,coordinator,transport}),e=>e.code==="AUTH");assert.equal(await j.load("destination:wspTEST:disposable"),undefined);});
+test("H02 changed field contract invalidates approval",async()=>{const plan=p(),a=approve(plan,"one");plan.tables[0].fields[1].name="modified";await assert.rejects(()=>executeExclusiveAirtableProvisioning({plan,approval:a,journal:journal(),coordinator,transport}),e=>e.code==="AUTH");});
+test("H03 destination reservation prevents new ID even after first completion",async()=>{const plan=p(),j=journal();await executeExclusiveAirtableProvisioning({plan,approval:approve(plan,"one"),journal:j,coordinator,transport});await assert.rejects(()=>executeExclusiveAirtableProvisioning({plan,approval:approve(plan,"two"),journal:j,coordinator,transport}),e=>e.code==="DESTINATION_RESERVED");});
+test("H04 same approved ID reuses completed install",async()=>{const plan=p(),j=journal(),args={plan,approval:approve(plan,"one"),journal:j,coordinator,transport};await executeExclusiveAirtableProvisioning(args);assert.equal((await executeExclusiveAirtableProvisioning(args)).reused,true);});
