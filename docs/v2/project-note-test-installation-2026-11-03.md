@@ -21,3 +21,17 @@ Branch: develop/v2-cross-platform-storage
 - Confirm workspace identity for existing-installation reuse; Airtable account-wide list may not return workspaceId.
 - Audit/remove unused journal/exclusive-lock modules only after checking references and tests.
 - Do not declare complete production readiness until these checks pass.
+
+## Live synthetic CRUD smoke test — PASS
+- Base appC8hCEmhYdFxumE; Grants table tblUkTd6VlZaknEWB.
+- Before test: zero grant records.
+- Created synthetic grant with logical ID smoke-20261103-01, stage possible, fit score 42.
+- Read verified same record and score.
+- Updated fit score to 84 and stage to watchlist; readback verified both.
+- Deleted synthetic record recPWno666tZRzv7V; confirmed zero remaining Grants records.
+- No production or nonprofit source writes. No synthetic record remains.
+
+## Reconnection caveat
+- The account-wide Airtable base listing omits workspaceId. The CLI's strict automatic reuse requires verified workspace identity and therefore currently stops for review on a matching base without that identity.
+- The live test base was successfully discovered and inspected through connected Airtable tools, but a credentialed CLI end-to-end reconnection test was **not** performed. Do not claim it passed.
+- A narrow resolution is needed: verified workspace membership or explicit operator selection of the discovered base ID, while maintaining protection against cross-workspace accidental reuse.
