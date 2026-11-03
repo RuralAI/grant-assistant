@@ -12,5 +12,13 @@ export async function executeExclusiveAirtableProvisioning(args={}){
  if(approval.planDigest!==provisioningPlanDigest(plan))throw new ProvisioningError("AUTH","approval must bind to exact plan digest");
  if(!coordinator||typeof coordinator.withExclusive!=="function")throw new ProvisioningError("LOCK_REQUIRED","exclusive coordinator required");
  const destination="destination:"+plan.workspaceId+":"+plan.baseName.trim().toLowerCase();
- return coordinator.withExclusive(destination,()=>coordinator.withExclusive("installation:"+approval.installationId,()=>executeAirtableProvisioning(args)));
+ return coordinator.withExclusive(destination,()=>coordinator.withExclusive("installation:"+approval.installationId,async()=>{
+  if(!args.journal?.load||!args.journal?.save)throw new ProvisioningError("CONFIG","durable journal required");
+  const reservationKey=destination;
+  const prior=await args.journal.load(reservationKey);
+  if(prior&&prior.ownerInstallationId!==approval.installationId)throw new ProvisioningError("DESTINATION_RESERVED","destination already reserved; reconcile before new installation");
+  if(!prior)await args.journal.save(reservationKey,{installationId:reservationKey,ownerInstallationId:approval.installationId,workspaceId:plan.workspaceId,baseName:plan.baseName,contractVersion:plan.contractVersion,status:"reserved"});
+  // Reservation identity is distinct from the installation journal identity.
+  return executeAirtableProvisioning(args);
+ }));
 }
