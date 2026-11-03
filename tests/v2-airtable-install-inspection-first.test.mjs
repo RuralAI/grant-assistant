@@ -11,12 +11,12 @@ test("I01 absent destination is inspectable without writes",async()=>{
 });
 test("I02 existing compatible base is reused without creating",async()=>{
  let creates=0;
- const r=await installAirtableInspectionFirst({plan,approval,discovery:{listBases:async()=>[{id:"appExisting",name:plan.baseName}]},transport:{getBaseSchema:async()=>schema,createBase:async()=>{creates++;}}});
+ const r=await installAirtableInspectionFirst({plan,approval,discovery:{listBases:async()=>[{id:"appExisting",name:plan.baseName,workspaceId:plan.workspaceId}]},transport:{getBaseSchema:async()=>schema,createBase:async()=>{creates++;}}});
  assert.equal(r.status,"existing");assert.equal(creates,0);
 });
 test("I03 incompatible candidate blocks creation",async()=>{
  let creates=0;
- await assert.rejects(()=>installAirtableInspectionFirst({plan,approval,discovery:{listBases:async()=>[{id:"appExisting",name:plan.baseName}]},transport:{getBaseSchema:async()=>({tables:[]}),createBase:async()=>{creates++;}}}),e=>e.code==="REVIEW");
+ await assert.rejects(()=>installAirtableInspectionFirst({plan,approval,discovery:{listBases:async()=>[{id:"appExisting",name:plan.baseName,workspaceId:plan.workspaceId}]},transport:{getBaseSchema:async()=>({tables:[]}),createBase:async()=>{creates++;}}}),e=>e.code==="REVIEW");
  assert.equal(creates,0);
 });
 test("I04 uncertain create never retries automatically",async()=>{
@@ -32,4 +32,13 @@ test("I06 missing approval blocks creation",async()=>{
  let creates=0;
  await assert.rejects(()=>installAirtableInspectionFirst({plan,discovery:{listBases:async()=>[]},transport:{createBase:async()=>{creates++},getBaseSchema:async()=>schema}}),e=>e.code==="AUTH");
  assert.equal(creates,0);
+});
+
+test("I07 same-name base without verified workspace blocks reuse and creation",async()=>{
+ let creates=0;
+ await assert.rejects(()=>installAirtableInspectionFirst({plan,approval,discovery:{listBases:async()=>[{id:"appOther",name:plan.baseName}]},transport:{getBaseSchema:async()=>schema,createBase:async()=>{creates++}}}),e=>e.code==="REVIEW");
+ assert.equal(creates,0);
+});
+test("I08 no approval blocks reuse as well as creation",async()=>{
+ await assert.rejects(()=>installAirtableInspectionFirst({plan,discovery:{listBases:async()=>[{id:"appExisting",name:plan.baseName,workspaceId:plan.workspaceId}]},transport:{getBaseSchema:async()=>schema}}),e=>e.code==="AUTH");
 });
