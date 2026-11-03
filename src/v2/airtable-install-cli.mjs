@@ -7,8 +7,9 @@ const args=process.argv.slice(2);
 const get=(flag)=>{const i=args.indexOf(flag);return i<0?undefined:args[i+1]};
 const workspaceId=get("--workspace"),baseName=get("--base");
 const create=args.includes("--create");
+const selectedBaseId=get("--base-id");
 if(!workspaceId||!baseName||!process.env.AIRTABLE_TOKEN){
- console.error("Usage: AIRTABLE_TOKEN=... node src/v2/airtable-install-cli.mjs --workspace <id> --base <name> [--create]");
+ console.error("Usage: AIRTABLE_TOKEN=... node src/v2/airtable-install-cli.mjs --workspace <id> --base <name> [--create] [--base-id app...]");
  process.exitCode=2;
 }else{
  try{
@@ -17,7 +18,7 @@ if(!workspaceId||!baseName||!process.env.AIRTABLE_TOKEN){
   // Metadata list is account-wide. Missing workspace membership is treated as a conflict, never silently reused.
   const discovery={listBases:()=>transport.listBases()};
   const result=create
-   ?await installAirtableInspectionFirst({plan,discovery,transport,approval:{approved:true,workspaceId,baseName,contractVersion:plan.contractVersion}})
+   ?await installAirtableInspectionFirst({plan,discovery,transport,approval:{approved:true,workspaceId,baseName,contractVersion:plan.contractVersion,selectedBaseId},selectedBaseId})
    :await inspectAirtableInstallation({plan,discovery,transport});
   console.log(JSON.stringify({mode:create?"create":"preview",...result},null,2));
  }catch(e){
