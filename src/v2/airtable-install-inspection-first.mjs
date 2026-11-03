@@ -9,20 +9,20 @@ export async function inspectAirtableInstallation({plan,discovery,transport}={})
  if(typeof discovery?.listBases!=="function"||typeof transport?.getBaseSchema!=="function")throw new InstallationInspectionError("CONFIG","base discovery and schema reader required");
  const bases=await discovery.listBases({workspaceId:plan.workspaceId});
  if(!Array.isArray(bases))throw new InstallationInspectionError("DISCOVERY","base discovery incomplete");
- const candidates=bases.filter(b=>b.name?.trim().toLowerCase()===plan.baseName.trim().toLowerCase());
+ // Discovery may be account-wide when workspace membership is unavailable. Treat all same-name bases as candidates; never silently ignore one.\n const candidates=bases.filter(b=>b.name?.trim().toLowerCase()===plan.baseName.trim().toLowerCase());
  const inspected=[];
  for(const base of candidates){
   try{
    const schema=await transport.getBaseSchema({baseId:base.id});
    const verdict=inspectProvisionedSchema(plan,{...schema,baseId:base.id});
-   inspected.push({baseId:base.id,name:base.name,compatible:verdict.ok,errors:verdict.errors,config:verdict.config});
+   inspected.push({baseId:base.id,name:base.name,workspaceId:base.workspaceId,compatible:verdict.ok,errors:verdict.errors,config:verdict.config});
   }catch(e){inspected.push({baseId:base.id,name:base.name,compatible:false,errors:["schema inspection unavailable"],config:null});}
  }
  return {status:inspected.length===0?"absent":inspected.length===1&&inspected[0].compatible?"compatible":"review_required",candidates:inspected};
 }
 export async function installAirtableInspectionFirst({plan,discovery,transport,approval}={}){
- const before=await inspectAirtableInstallation({plan,discovery,transport});
- if(before.status==="compatible")return {status:"existing",...before.candidates[0]};
+ if(approval?.approved!==true||approval.workspaceId!==plan.workspaceId||approval.baseName!==plan.baseName||approval.contractVersion!==plan.contractVersion)throw new InstallationInspectionError("AUTH","explicit destination and version approval required");\n const before=await inspectAirtableInstallation({plan,discovery,transport});
+ if(before.status==="compatible"){\n  const candidate=before.candidates[0];\n  // An account-wide listing cannot prove workspace membership. Never auto-connect across workspaces.\n  if(candidate.workspaceId!==plan.workspaceId)throw new InstallationInspectionError("REVIEW","matching base workspace not verified",before);\n  return {status:"existing",...candidate};\n }
  if(before.status!=="absent")throw new InstallationInspectionError("REVIEW","existing candidate requires review",before);
  if(approval?.approved!==true||approval.workspaceId!==plan.workspaceId||approval.baseName!==plan.baseName||approval.contractVersion!==plan.contractVersion)throw new InstallationInspectionError("AUTH","explicit destination and version approval required");
  if(typeof transport?.createBase!=="function")throw new InstallationInspectionError("CONFIG","create transport required");
