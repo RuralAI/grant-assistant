@@ -1,0 +1,3 @@
+interface:
+  display_name: "Grant Assistant v2"
+  short_description: "Install or reconnect Grant Assistant with Airtable or Google Sheets"
