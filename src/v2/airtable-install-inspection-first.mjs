@@ -21,16 +21,17 @@ export async function inspectAirtableInstallation({plan,discovery,transport}={})
  }
  return {status:inspected.length===0?"absent":inspected.length===1&&inspected[0].compatible?"compatible":"review_required",candidates:inspected};
 }
-export async function installAirtableInspectionFirst({plan,discovery,transport,approval}={}){
+export async function installAirtableInspectionFirst({plan,discovery,transport,approval,selectedBaseId}={}){
  if(approval?.approved!==true||approval.workspaceId!==plan.workspaceId||approval.baseName!==plan.baseName||approval.contractVersion!==plan.contractVersion)throw new InstallationInspectionError("AUTH","explicit destination and version approval required");
  const before=await inspectAirtableInstallation({plan,discovery,transport});
  if(before.status==="compatible"){
   const candidate=before.candidates[0];
   // An account-wide listing cannot prove workspace membership. Never auto-connect across workspaces.
-  if(candidate.workspaceId!==plan.workspaceId)throw new InstallationInspectionError("REVIEW","matching base workspace not verified",before);
+  if(candidate.workspaceId!==plan.workspaceId && !(selectedBaseId===candidate.baseId && approval.selectedBaseId===candidate.baseId))throw new InstallationInspectionError("REVIEW","matching base workspace not verified; explicitly select its base ID to connect",before);
   return {status:"existing",...candidate};
  }
  if(before.status!=="absent")throw new InstallationInspectionError("REVIEW","existing candidate requires review",before);
+ if(selectedBaseId)throw new InstallationInspectionError("REVIEW","selected base not found; refusing to create a replacement");
 
  if(typeof transport?.createBase!=="function")throw new InstallationInspectionError("CONFIG","create transport required");
  let created;
