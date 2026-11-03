@@ -4,9 +4,11 @@ import {mkdtemp,rm,mkdir} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {createLocalProvisioningCoordinator} from "../src/v2/airtable-provisioning-lock.mjs";
-import {executeExclusiveAirtableProvisioning} from "../src/v2/airtable-provisioning-exclusive.mjs";
+import {executeExclusiveAirtableProvisioning,provisioningPlanDigest} from "../src/v2/airtable-provisioning-exclusive.mjs";
+import {buildAirtableProvisioningPlan} from "../src/v2/airtable-provisioning.mjs";
 test("L01 hardened entrypoint rejects absent coordinator before writes",async()=>{
- await assert.rejects(()=>executeExclusiveAirtableProvisioning({approval:{installationId:"one"}}),e=>e.code==="LOCK_REQUIRED");
+ const plan=buildAirtableProvisioningPlan({workspaceId:"wspTEST",baseName:"Disposable"});
+ await assert.rejects(()=>executeExclusiveAirtableProvisioning({plan,approval:{installationId:"one",planDigest:provisioningPlanDigest(plan)}}),e=>e.code==="LOCK_REQUIRED");
 });
 test("L02 simultaneous same-ID callers cannot enter critical section",async()=>{
  const dir=await mkdtemp(join(tmpdir(),"v2-lock-"));
