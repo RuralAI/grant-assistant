@@ -15,8 +15,8 @@ Status: implementation proposal, 2026-11-03. Approved direction: fresh v2 base p
 4. Provision every required logical field in `portable-field-contract.md` with an explicit codec and physical field ID mapping. Use Airtable singleLineText for IDs/text, multilineText for JSON arrays/objects, date for ISO dates, dateTime for timestamps, number/currency for decimals, singleSelect for enums, checkbox only for known booleans (blank remains unknown). URLs use url. Use JSON text initially for arrays to match existing codec support; no implicit link-field support.
 5. Core controlled values: grant stage possible/active/awarded/watchlist/archived; eligibility eligible/ineligible/conditional/unknown; readiness ready/needs_work/unknown; search mode discovery/scoring/maintenance. Normalize values through the adapter; display labels may differ but must map bijectively.
 6. Optional collections (`organization_grant_roles`, `funder_restrictions`, `search_profiles`) are enabled only when needed, with separate versioned definitions and logical UUID fields. Grant-specific roles and restrictions must not be collapsed into permanent organization attributes.
-7. Persist a versioned installation manifest outside ordinary user data and in an operator-readable install metadata location: contract version, base ID, workspace ID, table/field IDs, codecs, installer version, creation timestamp, optional modules, source version if migrated. Define metadata storage and atomicity before implementation.
-8. Installation is staged: preview plan -> operator approval -> create base -> create fields -> metadata preflight -> read/write synthetic smoke tests -> operator acceptance. On partial failure, mark incomplete; never silently delete the base or retry uncertain writes without reconciliation.
+7. **Destination-native discovery:** identify installations by inspecting accessible bases and their actual schemas. Record base ID and field mappings in the application's connection configuration as needed; no standalone journal, lock directory, or mandatory metadata table. An optional destination-native version stamp is permitted only if inspection cannot reliably determine compatibility.
+8. Installation is staged: inspect workspace and candidate bases -> preview plan -> operator approval -> create base once -> metadata preflight -> synthetic smoke tests -> acceptance. If create outcome is uncertain, stop, rediscover bases, and present matching candidates for manual reconciliation; never automatically issue a second create. Never delete or overwrite existing data.
 9. The current adapter requires preflight schema and trusted authorization callback, and only supports text/json/number/boolean/date/timestamp/select codecs. It does not provision bases or handle Airtable multipleRecordLinks. Provisioning is a separate module. Its read-before-write check is not an atomic compare-and-swap; concurrent writes need conflict handling.
 
 ## Legacy migration contract
@@ -34,7 +34,7 @@ Status: implementation proposal, 2026-11-03. Approved direction: fresh v2 base p
 
 ## Acceptance gates before live integration
 - P01 fresh provision creates exactly required core tables and required typed fields; schema preflight passes.
-- P02 rerun detects existing installation and avoids duplicate base creation; partial failure yields recoverable manifest.
+- P02 rerun discovers existing installation from destination metadata and avoids duplicate base creation; ambiguous or partial creation requires manual inspection and reconciliation, not a local journal.
 - P03 unknown or incompatible field type/select choice fails closed.
 - M01 all 54 BTM reference records are accounted for as migrated, retained in historical export, excluded with explicit reason, or queued for review; counts by source table reconcile.
 - M02 source-to-destination ID crosswalk and six legacy context-link relationships are preserved or explicitly marked pending.
@@ -46,8 +46,15 @@ Status: implementation proposal, 2026-11-03. Approved direction: fresh v2 base p
 - M08 synthetic fixture migration and negative tests pass before any real nonprofit data copy.
 
 ## Open implementation decisions
-- Exact metadata manifest storage and schema.
+- Whether a minimal destination-native version marker provides value beyond schema inspection; no separate installation-state service is required.
 - Whether operator-only historical workflow rows get v2 optional tables or archival-only retention; do not silently omit.
 - Required source URL behavior for historical grants lacking a canonical opportunity link (quarantine vs explicit historical exception).
 - v2 field-label convention and exact optional table provisioning order.
 - Authorization model for migration of donor contact details, private notes, and profile narratives.
+
+## Simplification decision — 2026-11-03 (supersedes earlier journal design)
+- Standard installation is **inspection-first and destination-native**, with no required local journal, filesystem lock, distributed coordinator, or cryptographic approval digest.
+- Existing journal/exclusive-executor code is **legacy experimental implementation**, not the selected installer entrypoint. Do not invoke it in the normal user workflow. Retain temporarily for reference until its removal can be verified against callers and tests.
+- The installer must never assume that absence of a matching name proves that no prior create succeeded. Ambiguous create errors always stop and require rediscovery and explicit operator resolution.
+- No automatic in-place schema repair, destructive cleanup, or legacy migration. Preserve source data and require separate approval for migration writes.
+- Concurrent installation requests to the same destination are not guaranteed to be serialized. Clearly warn and refuse ambiguous candidates rather than promise race-free exactly-once base creation.
