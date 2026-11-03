@@ -20,7 +20,7 @@ const jsonFields=new Set(["issue_areas","search_geographies","beneficiaries","fu
 export function buildAirtableProvisioningPlan({workspaceId,baseName}={}){
  if(typeof workspaceId!=="string"||!workspaceId.trim()||typeof baseName!=="string"||!baseName.trim())throw Error("Explicit workspaceId and baseName required");
  const tables=structuredClone(core);
- const codecs=Object.fromEntries(tables.map(t=>[t.collection,Object.fromEntries(t.fields.slice(1).map(f=>[f.name,jsonFields.has(f.name)?"json":f.type==="multilineText"?"text":types[f.type]]))]));
+ const codecs=Object.fromEntries(tables.map(t=>[t.collection,Object.fromEntries(t.fields.map(f=>[f.name,jsonFields.has(f.name)?"json":f.type==="multilineText"?"text":types[f.type]]))]));
  return {contractVersion:PROVISIONING_VERSION,workspaceId,baseName,tables,codecs,requiresApproval:true};
 }
 export function inspectProvisionedSchema(plan,schema){
