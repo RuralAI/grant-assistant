@@ -53,6 +53,9 @@ export function createSheetsRowTransport({spreadsheetId,sheets,client}={}){
    if(!Array.isArray(rows?.[0])||!inspectSheetHeaders({headers:rows[0],requiredFields:sheet.headers}).ok)fail("SCHEMA","headers changed");
    if(!Array.isArray(rows[rowNumber-1])||rows[rowNumber-1].every(v=>v===""||v===null||v===undefined))fail("NOT_FOUND","row missing");
    const existing=decode(rows[rowNumber-1],rows[0]);
+   const identityField=sheet.identityField;
+   if(!identityField||typeof fields[identityField]!=="string"||!fields[identityField].trim())fail("IDENTITY","logical identity required for safe update");
+   if(existing[identityField]!==fields[identityField])fail("CONFLICT","row moved or logical identity changed; re-read before update");
    const merged={...existing,...fields};
    await client.updateRow({spreadsheetId,sheetTitle:sheet.title,rowNumber,values:encode(merged,rows[0])});
    return {id:recordId,fields:merged};
