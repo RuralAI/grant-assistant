@@ -30,7 +30,7 @@ export function createAirtableMetadataTransport({token,fetchImpl=fetch,apiRoot="
   try{return await response.json();}catch{throw new AirtableMetadataError(method==="POST"?"AMBIGUOUS_CREATE":"RESPONSE","invalid metadata response");}
  };
  return {
-  createBase:({workspaceId,name,tables})=>request("POST","/bases",{workspaceId,name,tables:toAirtableCreationTables(tables)}),
+  listBases:async()=>{\n   const bases=[];let offset;const seen=new Set();\n   do{\n    const page=await request("GET","/bases"+(offset?"?offset="+encodeURIComponent(offset):""));\n    if(!Array.isArray(page.bases))throw new AirtableMetadataError("DISCOVERY","invalid bases listing");\n    bases.push(...page.bases);\n    offset=page.offset;\n    if(offset){if(seen.has(offset))throw new AirtableMetadataError("DISCOVERY","pagination loop");seen.add(offset);}\n   }while(offset);\n   return bases;\n  },\n  createBase:({workspaceId,name,tables})=>request("POST","/bases",{workspaceId,name,tables:toAirtableCreationTables(tables)}),
   getBaseSchema:({baseId})=>request("GET","/bases/"+encodeURIComponent(baseId)+"/tables")
  };
 }
