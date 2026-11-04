@@ -1,0 +1,14 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {buildAirtableProvisioningPlan} from "../src/v2/airtable-provisioning.mjs";
+import {bindSheetsInstallation} from "../src/v2/installation-bindings.mjs";
+import {prepareSkillInstallation} from "../src/v2/skill-registration.mjs";
+const plan=buildAirtableProvisioningPlan({workspaceId:"test",baseName:"test"});
+const observed={spreadsheetId:"synthetic",sheets:plan.tables.map((t,i)=>({sheetId:i,title:t.name,headers:t.fields.map(f=>f.name)}))};
+const binding=bindSheetsInstallation(observed);
+test("registration refuses missing explicit approval",async()=>{const r=await prepareSkillInstallation({binding,observedSchema:observed,platform:"chatgpt",approve:async()=>false});assert.equal(r.status,"BLOCKED");});
+test("registration refuses unavailable platform import",async()=>{const r=await prepareSkillInstallation({binding,observedSchema:observed,platform:"claude",approve:async()=>true});assert.equal(r.status,"BLOCKED");assert.match(r.reason,/no supported/);});
+test("registration verifies all five skills",async()=>{const called=[];const r=await prepareSkillInstallation({binding,observedSchema:observed,platform:"chatgpt",approve:async()=>true,register:async({name,files})=>{assert.equal(Object.keys(files).length,3);called.push(name);return {installed:true}},verify:async()=>true});assert.equal(r.status,"INSTALLED");assert.equal(called.length,5);});
+test("registration refuses unverified skill discovery",async()=>{const r=await prepareSkillInstallation({binding,observedSchema:observed,platform:"claude",approve:async()=>true,register:async()=>({installed:true}),verify:async()=>false});assert.equal(r.status,"BLOCKED");});
+test("registration refuses changed header before installation",async()=>{const drift=structuredClone(observed);drift.sheets[0].headers.reverse();await assert.rejects(()=>prepareSkillInstallation({binding,observedSchema:drift,platform:"chatgpt",approve:async()=>true}),/header mismatch/);});
+test("operating workflows include real research, scoring, write, drafting and audit steps",async()=>{const r=await prepareSkillInstallation({binding,observedSchema:observed,platform:"chatgpt",approve:async()=>false});const texts=Object.entries(r.bundle.files).filter(([k])=>k.endsWith("/SKILL.md")).map(([,v])=>v);assert.equal(texts.length,5);for(const t of texts)assert.ok(t.length>1400);assert.match(texts[2],/before EVERY write batch/);});
