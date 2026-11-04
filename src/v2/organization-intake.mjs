@@ -23,6 +23,8 @@ export function validateOrganizationIntake(input){
  if(!nonempty(input.organization_name))errors.push("missing organization_name");
  if(!nonempty(input.profile_name))errors.push("missing profile_name");
  if(!nonempty(input.profile_id))errors.push("missing profile_id");
+ if(nonempty(input.restricted_funders))warnings.push("restricted funders are not represented in the portable 84-field schema; preserve source answers and require explicit mapping review");
+ if(nonempty(input.partners))warnings.push("partner roles are not represented in the portable 84-field schema; preserve source answers and require explicit mapping review");
  if(input.loan_policy===undefined)warnings.push("loan policy not confirmed; exclude loans from discovery by default");
  if(!nonempty(input.annual_budget))warnings.push("budget unknown; defer budget-dependent scoring");
  if(!nonempty(input.founded_year))warnings.push("founding year unknown; verify age-based eligibility per opportunity");
