@@ -1,7 +1,8 @@
 import {buildAirtableProvisioningPlan} from "./airtable-provisioning.mjs";
 import {createSheetsRowTransport} from "./google-sheets-row-transport.mjs";
 import {createGoogleSheetsHttpClient} from "./google-sheets-http.mjs";
-// Bind the existing 83-field logical contract to the four Google worksheets.
+import {validateAgentPatch} from "./normalize.mjs";
+// Bind the existing 84-field logical contract to the four Google worksheets.
 // No spreadsheet creation, credential storage, or writes during initialization.
 export function createGoogleSheetsV2Connection({spreadsheetId,token,client,authorize}={}){
  if(typeof spreadsheetId!=="string"||!spreadsheetId.trim())throw Error("spreadsheetId required");
@@ -31,10 +32,23 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    const existing=await transport.listRecords({tableId:collection,pageSize:10000});
    if(existing.offset)throw Error("incomplete duplicate scan");
    if(existing.records.some(r=>r.fields[identity]===fields[identity]))throw Error("duplicate logical ID");
+   if(collection==="grants"&&context?.actor!=="operator"){
+    if(fields.stage!==undefined&&fields.stage!=="possible")throw Error("agent cannot promote grant");
+    if(fields.review_status!==undefined&&fields.review_status!=="Needs Research")throw Error("agent cannot set human review decision");
+    if(fields.operator_notes)throw Error("agent cannot set operator notes");
+   }
    return transport.createRecord({tableId:collection,fields});
   },
   async update(collection,recordId,fields,context){
    if(!await authorize({action:"update",collection,recordId,fields,context}))throw Error("write not authorized");
+   if(collection==="grants"&&context?.actor!=="operator"){
+    const current=await transport.listRecords({tableId:collection,pageSize:10000});
+    if(current.offset)throw Error("incomplete grant scan");
+    const match=current.records.find(r=>r.id===recordId);
+    if(!match)throw Error("grant record not found");
+    const gate=validateAgentPatch(match.fields,fields);
+    if(!gate.ok)throw Error("human-owned grant fields cannot be changed by agent: "+gate.errors.map(e=>e.field).join(", "));
+   }
    return transport.updateRecord({tableId:collection,recordId,fields});
   }
  };
