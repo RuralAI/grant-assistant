@@ -2,18 +2,65 @@
 
 A grant-pipeline system for nonprofits, built on Claude + Airtable. Your organization fills out one seed document, runs one installer, and in about 15 minutes has a working system: a grants database, your existing grants and funders already loaded, and four custom Claude skills that find, evaluate, record, and log grant opportunities for you.
 
-**Status:** v1.1 — proven in production and in a first commercial installation (July 2026).
+**Status:** v1.1 is the current documented Claude + Airtable installation. **Grant Assistant v2 is under development** for ChatGPT or Claude with Airtable or Google Sheets. The v2 installer is not yet certified for public production installation.
 
 ---
 
-## What you get after installing
+## Understanding the next-generation installer (v2 — in development)
+
+**You do not need to know how to code to use Grant Assistant.** The project has two complementary parts: plain-English **skills** that explain the tasks the AI should perform, and small JavaScript **modules** that carry out repeatable checks and installation steps consistently.
+
+The v1.1 installation instructions below remain available for existing users. **Do not treat the v2 development files as a finished installer.** v2 is being tested for four combinations: ChatGPT + Airtable, ChatGPT + Google Sheets, Claude + Airtable, and Claude + Google Sheets.
+
+### What is an `.mjs` file?
+
+An `.mjs` file is a JavaScript module: a small piece of program code that can be run by **Node.js**, a program for running JavaScript outside a web browser. You generally do **not** need to open, edit, or run these files yourself.
+
+- **`SKILL.md` files** are instructions written for the AI assistant. They explain what to do, when to ask permission, and what good results look like.
+- **`src/v2/*.mjs` files** are the implementation. They handle precise tasks such as checking the database layout, detecting older installations, preparing an organization profile, and checking that installed skills point to the right destination.
+- **`tests/*.test.mjs` files** are automated checks. They deliberately try expected and unexpected situations to catch mistakes before a release. They are **not** installed for end users.
+- **`.github/workflows/`** contains GitHub Actions automation, which can run those checks when the project changes.
+
+A simple analogy: the **skill is the instruction manual**, the **source code is the machinery**, and the **tests are the safety inspection**. Keeping all three in the public repository lets anyone inspect how the system is supposed to work and how we check it.
+
+### What happens during a v2 installation?
+
+1. The installer checks whether this is a **new installation**, an **existing v2 installation**, an **older legacy installation**, or an **incomplete installation**. It does not silently replace an older system.
+2. It gathers up to **15 organization-onboarding answers**; existing users should be able to reuse known answers rather than start over.
+3. With approval, it creates or verifies **four storage collections**: Organization Profiles, Organizations, Grants, and Search Audit.
+4. It prepares and binds **five operating skills**: prospect scan, scoring, storage write, grant writing, and audit log.
+5. It verifies what was actually created and installed. If a platform cannot install or discover skills automatically, the installer must say so rather than claim success.
+
+**Important:** Downloading or reading this repository does not by itself execute JavaScript, authorize access to Airtable or Google Sheets, or install a skill in ChatGPT or Claude. Those steps require supported tools and permissions. The full v2 workflow is still being engineered and tested.
+
+### Guide to the v2 code
+
+| Folder or file | What it does in everyday language |
+|---|---|
+| `skills/grant-assistant-v2/SKILL.md` | The plain-English instructions that guide the installer |
+| `src/v2/full-install-orchestrator.mjs` | Coordinates the installation steps and approvals |
+| `src/v2/installation-detection.mjs` | Recognizes new, existing, partial, and legacy setups |
+| `src/v2/organization-intake.mjs` | Checks the 15 onboarding answers and prepares an organization profile |
+| `src/v2/airtable-provisioning.mjs` | Describes the Airtable tables and fields the system needs |
+| `src/v2/installation-bindings.mjs` | Matches the system's field names to the actual storage location |
+| `src/v2/skill-registration.mjs` | Checks the process for registering and verifying operating skills |
+| `tests/` | Holds automated tests to protect existing behavior when the project changes |
+| `docs/v2/` | Holds design decisions, onboarding guidance, and engineering handoff notes |
+
+**Why keep the tests after launch?** A future improvement to scoring, onboarding, or storage could accidentally break something that already works. Keeping tests in the GitHub repository lets maintainers check for those regressions. They do not need to be part of the end-user installation package.
+
+**For current v1.1 users:** Continue with the instructions below until the v2 migration process has been tested and approved. The next-generation installer is intended to preserve existing records and human decisions, not overwrite them.
+
+---
+
+## What you get after installing (current v1.1)
 
 - **A grants database in your Airtable** — every grant you're tracking, at every stage, in one place
 - **Your history preloaded** — your active grants, past awards, funder list, and any funder restrictions, so the system never re-pitches you something you already know about
 - **Four custom skills in your Claude** — one that searches for new opportunities, one that scores how well each fits *your* organization, one that records results safely, and one that keeps an honest log of every work session
 - **You stay in charge** — the system finds and recommends; a person on your team always decides what to actually pursue
 
-## Quick start
+## Quick start (current v1.1 — Claude + Airtable)
 
 **Step 1: Download this repository.**
 Click the green **Code** button at the top of this page, select **Download ZIP**, and extract the folder on your computer.
@@ -71,7 +118,7 @@ If your organization handles regulated data, or is subject to data requirements 
 
 **Honest by design.** The system verifies opportunities against the funder's own website before scoring, flags information gaps instead of inventing facts, and ends every work session with a log entry that says what it did — and what it didn't get to.
 
-## Repository contents
+## Repository contents (v1.1 overview; v2 folders described above)
 
 ```
 grant-assistant/
