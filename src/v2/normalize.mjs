@@ -3,6 +3,7 @@
 export const ELIGIBILITY = Object.freeze(["eligible","ineligible","conditional","unknown"]);
 export const READINESS = Object.freeze(["ready","needs_work","unknown"]);
 export const STAGES = Object.freeze(["possible","active","awarded","watchlist","archived"]);
+export const REVIEW_STATUSES = Object.freeze(["Pending Review","Approved","Rejected","Needs Research"]);
 const has = (v) => v !== undefined && v !== null && v !== "";
 const obj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const trim = (v) => typeof v === "string" ? v.trim() : v;
@@ -75,6 +76,7 @@ export function normalizeGrant(input) {
     discovered_at:timestamp(input.discovered_at,"discovered_at",errors),
     last_verified_at:timestamp(input.last_verified_at,"last_verified_at",errors),
     stage:enumValue(input.stage,STAGES,"stage",errors,"possible"),
+    review_status:enumValue(input.review_status,REVIEW_STATUSES,"review_status",errors,"Needs Research"),
     next_action:text(input.next_action,"next_action",errors),
     operator_notes:text(input.operator_notes,"operator_notes",errors),
     updated_at:timestamp(input.updated_at,"updated_at",errors)
@@ -134,6 +136,6 @@ export function duplicateKey(grant) {
 export function validateAgentPatch(existing, patch) {
   const errors=[];
   if (!obj(existing)||!obj(patch)) return {ok:false,errors:[fail("patch","existing and patch must be objects")]};
-  for (const field of ["stage","operator_notes","grant_id"]) if (Object.hasOwn(patch,field) && patch[field]!==existing[field]) errors.push(fail(field,"human-owned or immutable"));
+  for (const field of ["stage","review_status","operator_notes","grant_id"]) if (Object.hasOwn(patch,field) && patch[field]!==existing[field]) errors.push(fail(field,"human-owned or immutable"));
   return {ok:errors.length===0,errors};
 }
