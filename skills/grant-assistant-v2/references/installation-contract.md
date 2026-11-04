@@ -1,6 +1,6 @@
 # Grant Assistant v2 installation contract
 
-Authoritative field definitions: `src/v2/airtable-provisioning.mjs`, function `buildAirtableProvisioningPlan`. Four collections: `organization_profile` (Organization Profiles, 24 fields, `profile_id`); `organizations` (Organizations, 10 fields, `organization_id`); `grants` (Grants, 29 fields, `grant_id`); `search_audit` (Search Audit, 21 fields, `run_id`). Total 84 fields for new v2.1 test installations. Existing 83-field destinations require explicit review and non-destructive approval before adding review_status.
+Authoritative field definitions: `src/v2/airtable-provisioning.mjs`, function `buildAirtableProvisioningPlan`. Four collections: `organization_profile` (Organization Profiles, 24 fields, `profile_id`); `organizations` (Organizations, 10 fields, `organization_id`); `grants` (Grants, 29 fields, `grant_id`); `search_audit` (Search Audit, 21 fields, `run_id`). Total 84 fields for new v2 review-draft installations. Existing 83-field destinations require explicit review and non-destructive approval before adding review_status.
 
 ## Installation gates
 - Ask for provider choice and approved destination (Airtable workspace or Google Drive folder).
@@ -18,7 +18,7 @@ Google: real authenticated HTTP client or explicit connector path; schema inspec
 Both: ChatGPT and Claude entrypoint discovery, permission prompt, provider selection, approve-before-write, readable failure and retry guidance.
 
 ## Current implementation caveats
-`src/v2/google-sheets-connection.mjs` is a transport-level integration, **not yet equivalent** to the full `createAirtableAdapter` normalization and protected-field authorization semantics. Its authorize callback must be supplied by trusted code. Do not claim parity until validator/codec tests are implemented.
+`src/v2/google-sheets-connection.mjs` now enforces human-owned grant fields at the connection layer using `validateAgentPatch` and a trusted authorization callback, but it does **not yet** implement the full Airtable adapter normalization, codecs, or equivalent validation. A boolean authorization response permits ordinary writes only; operator capability must be returned by a trusted callback after authenticating a human. Do not claim full parity until validator/codec and credentialed runtime tests are implemented.
 `src/v2/google-sheets-row-transport.mjs` currently uses row locators with identity checks; concurrent edits between check and write remain a risk. For Friday, use a disposable sheet and avoid concurrent editors. The live connector smoke test previously exercised the Google Drive connector, not the repository OAuth client.
 
 ## Review status addition (2026-11-04)
