@@ -1,5 +1,5 @@
 // Pure v2 Airtable provisioning plan. No network calls or writes.
-export const PROVISIONING_VERSION="2.0.0-draft";
+export const PROVISIONING_VERSION="2.0.1-review-draft";
 const field=(name,type,extra={})=>({name,type,...extra});
 const text=(name)=>field(name,"singleLineText");
 const long=(name)=>field(name,"multilineText");
@@ -11,7 +11,7 @@ const core=[
  {name:"Organizations",collection:"organizations",fields:[
  text("name"),text("organization_id"),field("website_url","url"),text("organization_type"),text("contact_name"),field("contact_email","email"),field("contact_phone","phoneNumber"),field("source_url","url"),long("notes"),timestamp("updated_at")]},
  {name:"Grants",collection:"grants",fields:[
- text("title"),text("grant_id"),text("funder_organization_id"),text("funder_name_observed"),text("source_system"),text("source_record_id"),field("source_url","url"),text("opportunity_cycle"),field("deadline","date"),field("award_min","currency"),field("award_max","currency"),text("currency"),long("eligible_geographies"),long("eligibility_requirements"),select("eligibility_status",["eligible","ineligible","conditional","unknown"]),long("eligibility_reason"),field("restriction_until","date"),field("fit_score","number"),long("fit_rationale"),select("readiness_status",["ready","needs_work","unknown"]),text("search_profile_id"),text("discovery_run_id"),timestamp("discovered_at"),timestamp("last_verified_at"),select("stage",["possible","active","awarded","watchlist","archived"]),long("next_action"),long("operator_notes"),timestamp("updated_at")]},
+ text("title"),text("grant_id"),text("funder_organization_id"),text("funder_name_observed"),text("source_system"),text("source_record_id"),field("source_url","url"),text("opportunity_cycle"),field("deadline","date"),field("award_min","currency"),field("award_max","currency"),text("currency"),long("eligible_geographies"),long("eligibility_requirements"),select("eligibility_status",["eligible","ineligible","conditional","unknown"]),long("eligibility_reason"),field("restriction_until","date"),field("fit_score","number"),long("fit_rationale"),select("readiness_status",["ready","needs_work","unknown"]),text("search_profile_id"),text("discovery_run_id"),timestamp("discovered_at"),timestamp("last_verified_at"),select("stage",["possible","active","awarded","watchlist","archived"]),select("review_status",["Pending Review","Approved","Rejected","Needs Research"]),long("next_action"),long("operator_notes"),timestamp("updated_at")]},
  {name:"Search Audit",collection:"search_audit",fields:[
  text("audit_label"),text("run_id"),timestamp("started_at"),timestamp("completed_at"),text("profile_id"),text("search_profile_id"),select("mode",["discovery","scoring","maintenance"]),long("queries_run"),long("sources_checked"),field("opportunities_identified","number"),field("opportunities_added","number"),field("opportunities_scored","number"),field("opportunities_deferred","number"),long("triage_details"),long("coverage_summary"),long("stopping_rationale"),long("gaps"),long("next_searches"),long("carried_forward"),long("updated_records"),timestamp("created_at")]}
 ];
