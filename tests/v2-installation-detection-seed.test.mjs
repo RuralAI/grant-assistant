@@ -45,3 +45,23 @@ test("no seed approval means no mutation",async()=>{
  const result=await installGrantAssistantV2({provider:"google_sheets",platform:"chatgpt",destination:{id:"test"},inspect:async()=>sheets,organizationIntake:intake,approveSeed:async()=>false,writeSeed:async()=>{writes++;return {written:true}}});
  assert.equal(result.phase,"seed");assert.equal(writes,0);
 });
+
+test("four provider/platform combinations enforce seed readback before five registrations",async()=>{
+ for(const provider of ["airtable","google_sheets"]){
+  for(const platform of ["chatgpt","claude"]){
+   const airtable={baseId:"appSYNTHETIC",tables:plan.tables.map((t,i)=>({id:"tblSYNTH"+i,name:t.name,fields:t.fields.map((field,j)=>({id:"fldSYNTH"+i+"X"+j,name:field.name,type:field.type,...(field.options?{options:field.options}:{})}))}))};
+   const metadata=provider==="airtable"?airtable:sheets;
+   const events=[];
+   const result=await installGrantAssistantV2({provider,platform,destination:{id:"synthetic"},inspect:async()=>metadata,organizationIntake:intake,
+    approveSeed:async()=>true,
+    writeSeed:async()=>{events.push("seed-write");return {written:true}},
+    readSeed:async()=>{events.push("seed-read");return {...intake}},
+    approveSkills:async()=>true,
+    register:async()=>{events.push("skill-register");return {installed:true}},
+    verify:async()=>true});
+   assert.equal(result.status,"INSTALLED",provider+" "+platform);
+   assert.deepEqual(events.slice(0,2),["seed-write","seed-read"]);
+   assert.equal(events.filter(x=>x==="skill-register").length,5);
+  }
+ }
+});
