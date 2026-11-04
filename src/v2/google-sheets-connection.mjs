@@ -26,13 +26,15 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
   },
   async list(collection){return transport.listRecords({tableId:collection,pageSize:100});},
   async create(collection,fields,context){
-   if(!await authorize({action:"create",collection,fields,context}))throw Error("write not authorized");
+   const permission=await authorize({action:"create",collection,fields,context});
+   if(!permission)throw Error("write not authorized");
+   const operator=permission!==true&&permission?.actor==="operator";
    const identity=sheets[collection]?.identityField;
    if(!identity||typeof fields?.[identity]!=="string"||!fields[identity].trim())throw Error("logical identity required");
    const existing=await transport.listRecords({tableId:collection,pageSize:10000});
    if(existing.offset)throw Error("incomplete duplicate scan");
    if(existing.records.some(r=>r.fields[identity]===fields[identity]))throw Error("duplicate logical ID");
-   if(collection==="grants"&&context?.actor!=="operator"){
+   if(collection==="grants"&&!operator){
     if(fields.stage!==undefined&&fields.stage!=="possible")throw Error("agent cannot promote grant");
     if(fields.review_status!==undefined&&fields.review_status!=="Needs Research")throw Error("agent cannot set human review decision");
     if(fields.operator_notes)throw Error("agent cannot set operator notes");
@@ -40,7 +42,9 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    return transport.createRecord({tableId:collection,fields});
   },
   async update(collection,recordId,fields,context){
-   if(!await authorize({action:"update",collection,recordId,fields,context}))throw Error("write not authorized");
+   const permission=await authorize({action:"update",collection,recordId,fields,context});
+   if(!permission)throw Error("write not authorized");
+   const operator=permission!==true&&permission?.actor==="operator";
    if(collection==="grants"&&context?.actor!=="operator"){
     const current=await transport.listRecords({tableId:collection,pageSize:10000});
     if(current.offset)throw Error("incomplete grant scan");
