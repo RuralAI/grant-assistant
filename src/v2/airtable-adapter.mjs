@@ -72,7 +72,10 @@ export function createAirtableAdapter({config,transport,schema=null,authorize=nu
   async function upsert(collection,input,{actor="agent",allowCreate=true,authorization=null}={}){
     check(Boolean(validators[collection])&&Boolean(config.collections[collection]),"CONFIG","collection not configured");
     check(actor==="agent"||actor==="operator","ACTOR","actor must be agent or operator");
-    check(await authorize({actor,collection,operation:"upsert",authorization,input})===true,"AUTH","write not authorized");
+    const permission=await authorize({actor,collection,operation:"upsert",authorization,input});
+    check(Boolean(permission),"AUTH","write not authorized");
+    const trustedOperator=permission!==true&&permission?.actor==="operator";
+    check(actor!=="operator"||trustedOperator,"AUTH","operator authority requires trusted authorization");
     const validator=validators[collection],idField=ids[collection],def=config.collections[collection];
     check(input&&typeof input==="object"&&!Array.isArray(input),"VALIDATION","record object required");
     const key=input[idField];check(typeof key==="string"&&key.trim(),"IDENTITY","logical ID required");
@@ -92,7 +95,7 @@ export function createAirtableAdapter({config,transport,schema=null,authorize=nu
     }else{
       check(collection!=="search_audit","APPEND_ONLY","search audit cannot be updated");
       check(!Object.hasOwn(input,idField)||input[idField]===existing.value[idField],"IDENTITY","logical ID immutable");
-      if(actor==="agent"){
+      if(!trustedOperator){
         if(collection==="grants"){
           const gate=validateAgentPatch(existing.value,input);check(gate.ok,"HUMAN_FIELD",gate.errors.map(e=>e.field).join(", "));
         }else for(const field of protectedFields[collection]){
@@ -101,7 +104,7 @@ export function createAirtableAdapter({config,transport,schema=null,authorize=nu
       }
     }
     const merged={...(existing?.value||{}),...input};
-    if(actor==="agent"&&!existing&&collection==="grants"){
+    if(!trustedOperator&&!existing&&collection==="grants"){
       check(!Object.hasOwn(input,"stage")||input.stage==="possible","HUMAN_FIELD","agent cannot create promoted grant");
       check(!Object.hasOwn(input,"operator_notes")||!input.operator_notes,"HUMAN_FIELD","agent cannot set operator notes");
       check(!Object.hasOwn(input,"review_status")||input.review_status==="Needs Research","HUMAN_FIELD","agent cannot set human review decision on create");
