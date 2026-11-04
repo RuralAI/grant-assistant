@@ -22,7 +22,7 @@ test("provisioning cannot occur without approval",async()=>{
 });
 test("no skill registration when provider readback is malformed",async()=>{
  let registered=0;const result=await installGrantAssistantV2({provider:"google_sheets",platform:"chatgpt",destination:{id:"synthetic"},inspect:async()=>({spreadsheetId:"x",sheets:[]}),approveSkills:async()=>true,register:async()=>{registered++;return {installed:true}},verify:async()=>true});
- assert.equal(result.phase,"binding");assert.equal(registered,0);
+ assert.equal(result.phase,"inspection");assert.equal(result.detection.kind,"unknown");assert.equal(registered,0);
 });
 test("no skill registration when host lacks import support",async()=>{
  const result=await installGrantAssistantV2({provider:"airtable",platform:"claude",destination:{id:"synthetic"},inspect:async()=>airtable,approveSkills:async()=>true});
