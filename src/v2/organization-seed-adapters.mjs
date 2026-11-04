@@ -7,7 +7,7 @@ export function createAirtableSeedAdapter({binding,transport}){
  if(binding?.provider!=="airtable"||!transport)throw Error("Airtable binding and authenticated transport required");
  const table=binding.collections.organization_profile;
  const baseId=binding.baseId,tableId=table.tableId;
- const toLogical=record=>Object.fromEntries(Object.entries(table.fields).filter(([,id])=>Object.hasOwn(record.fields||{},id)).map(([key,id])=>[key,decode(record.fields[id],table.codecs[key])]));
+ const toLogical=record=>Object.fromEntries(Object.entries(table.fields).filter(([,id])=>(Object.hasOwn(record.fields||{},id)||Object.hasOwn(record.fields||{},key))).map(([key,id])=>[key,decode(record.fields[id]??record.fields[key],table.codecs[key])]));
  const locate=async profileId=>{
   const matches=[];let offset;
   do{
