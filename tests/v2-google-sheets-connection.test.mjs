@@ -7,7 +7,7 @@ const client={
  appendRow:async({sheetTitle,values})=>{const r=rows.get(sheetTitle);r.push(values);return {rowNumber:r.length};},
  updateRow:async({sheetTitle,rowNumber,values})=>{rows.get(sheetTitle)[rowNumber-1]=values;}
 };
-function setup(authorize=async()=>true){
+function setup(authorize=async()=>({actor:"operator"})){
  const c=createGoogleSheetsV2Connection({spreadsheetId:"test",client,authorize});
  for(const sheet of Object.values(c.sheets))rows.set(sheet.title,[sheet.headers]);
  return c;
@@ -19,3 +19,5 @@ test("C04 rejects stale locator and missing logical ID",async()=>{const c=setup(
 
 test("C05 agent cannot change human review decision or stage",async()=>{const c=setup();const first=await c.create("grants",{grant_id:"g1",title:"Synthetic",review_status:"Needs Research"});await c.update("grants",first.id,{grant_id:"g1",review_status:"Approved"},{actor:"operator"});await assert.rejects(()=>c.update("grants",first.id,{grant_id:"g1",review_status:"Rejected"}),/human-owned/);await assert.rejects(()=>c.update("grants",first.id,{grant_id:"g1",stage:"active"}),/human-owned/);assert.equal((await c.list("grants")).records[0].fields.review_status,"Approved");});
 test("C06 agent cannot create approved grants",async()=>{const c=setup();await assert.rejects(()=>c.create("grants",{grant_id:"g1",review_status:"Approved"}),/human review decision/);assert.equal((await c.list("grants")).records.length,0);});
+
+test("C07 caller actor label does not grant operator authority",async()=>{const c=setup(async()=>true);const first=await c.create("grants",{grant_id:"g1",title:"Synthetic"});await assert.rejects(()=>c.update("grants",first.id,{grant_id:"g1",review_status:"Approved"},{actor:"operator"}),/human-owned/);await assert.rejects(()=>c.create("grants",{grant_id:"g2",review_status:"Approved"},{actor:"operator"}),/human review decision/);});
