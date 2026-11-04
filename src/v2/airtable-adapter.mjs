@@ -6,7 +6,7 @@ import {normalizeGrant,normalizeProfile,duplicateKey,validateAgentPatch} from ".
 import {normalizeOrganization,normalizeSearchAudit,normalizeFunderRestriction,normalizeOrganizationGrantRole} from "./records.mjs";
 const validators={grants:normalizeGrant,organization_profile:normalizeProfile,organizations:normalizeOrganization,search_audit:normalizeSearchAudit,funder_restrictions:normalizeFunderRestriction,organization_grant_roles:normalizeOrganizationGrantRole};
 const ids={grants:"grant_id",organization_profile:"profile_id",organizations:"organization_id",search_audit:"run_id",funder_restrictions:"restriction_id",organization_grant_roles:"role_id"};
-const protectedFields={grants:["stage","operator_notes"],organizations:["notes"],organization_profile:[],search_audit:[],funder_restrictions:[],organization_grant_roles:[]};
+const protectedFields={grants:["stage","review_status","operator_notes"],organizations:["notes"],organization_profile:[],search_audit:[],funder_restrictions:[],organization_grant_roles:[]};
 export class AdapterError extends Error {constructor(code,message){super(message);this.name="AdapterError";this.code=code;}}
 function check(cond,code,msg){if(!cond)throw new AdapterError(code,msg);}
 function equal(a,b){return JSON.stringify(a)===JSON.stringify(b);}
@@ -104,6 +104,7 @@ export function createAirtableAdapter({config,transport,schema=null,authorize=nu
     if(actor==="agent"&&!existing&&collection==="grants"){
       check(!Object.hasOwn(input,"stage")||input.stage==="possible","HUMAN_FIELD","agent cannot create promoted grant");
       check(!Object.hasOwn(input,"operator_notes")||!input.operator_notes,"HUMAN_FIELD","agent cannot set operator notes");
+      check(!Object.hasOwn(input,"review_status")||input.review_status==="Needs Research","HUMAN_FIELD","agent cannot set human review decision on create");
     }
     const result=validator(merged);
     check(result.ok,"VALIDATION",JSON.stringify(result.errors));
