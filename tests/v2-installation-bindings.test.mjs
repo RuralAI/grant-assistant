@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {buildAirtableProvisioningPlan} from "../src/v2/airtable-provisioning.mjs";
+import {bindAirtableInstallation,bindSheetsInstallation,assertBindingCurrent} from "../src/v2/installation-bindings.mjs";
+const plan=buildAirtableProvisioningPlan({workspaceId:"test",baseName:"test"});
+const airtable={baseId:"appTEST",tables:plan.tables.map((t,i)=>({id:"tblTEST"+i,name:t.name,fields:t.fields.map((f,j)=>({id:"fldTEST"+i+"X"+j,name:f.name,type:f.type,...(f.options?{options:{choices:f.options.choices.map((c,k)=>({id:"selTEST"+k,name:c.name}))}}:{})}))}))};
+const sheets={spreadsheetId:"spreadsheet-test",sheets:plan.tables.map((t,i)=>({sheetId:i,title:t.name,headers:t.fields.map(f=>f.name)}))};
+test("binding: Airtable maps 84 exact physical field IDs",()=>{const b=bindAirtableInstallation(airtable);assert.equal(Object.values(b.collections).reduce((n,c)=>n+Object.keys(c.fields).length,0),84);assert.equal(b.collections.grants.fields.review_status,airtable.tables[2].fields.find(f=>f.name==="review_status").id);assertBindingCurrent(b,airtable);});
+test("binding: Airtable field-ID drift fails closed",()=>{const b=bindAirtableInstallation(airtable);const changed=structuredClone(airtable);changed.tables[2].fields[0].id="fldCHANGED";assert.throws(()=>assertBindingCurrent(b,changed),/drift/);});
+test("binding: Sheets maps 84 exact header positions",()=>{const b=bindSheetsInstallation(sheets);assert.equal(Object.values(b.collections).reduce((n,c)=>n+Object.keys(c.columns).length,0),84);assertBindingCurrent(b,sheets);});
+test("binding: Sheets reordered header and duplicate tab fail closed",()=>{const b=bindSheetsInstallation(sheets);const changed=structuredClone(sheets);changed.sheets[2].headers.reverse();assert.throws(()=>assertBindingCurrent(b,changed),/header mismatch/);changed.sheets=structuredClone(sheets.sheets);changed.sheets[3].sheetId=2;assert.throws(()=>bindSheetsInstallation(changed),/duplicate/);});
