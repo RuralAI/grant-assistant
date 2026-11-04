@@ -46,6 +46,31 @@ const workflows={
 4. Append through the approved storage adapter after explicit write authorization; verify the run_id is unique and the row is readable. Never update or delete an existing Search Audit record.
 5. If a write fails, return the unsaved audit payload and error, mark audit incomplete, and avoid claiming persistence. Do not duplicate a previously appended run on retry.`
 };
+const parity={
+ "grant-prospect-scan":`## Canonical-method parity
+- Plan and report nine configurable discovery lanes: federal notices, state programs, local government, private foundations, corporate philanthropy, community foundations, sector-specific funders, research/education, and adjacent partner/donor prospects. Do not mark a lane searched unless it was actually searched.
+- Tier 1: triage source identity and likely fit. Tier 2: verify eligibility, dates, award and cycle against the primary funder source before scoring or writing. Track verified, conditional, rejected and deferred separately.
+- For ineligible direct applicants, investigate an authorized fiscal sponsor or partner pathway without presuming partner consent. Maintain an adjacent donor/prospect registry as a no-write research output if no dedicated collection exists.
+- Record per-lane queries, sources, examined, triaged, verified, scored and added; identify skipped lanes, stopping rationale and carry-forward tasks. Preserve counts in the 21-field Search Audit contract without inventing unsupported columns.`,
+ "grant-scoring":`## Canonical-method parity
+- Read scoring preferences and eligibility traps from the selected profile on every run; never embed CRAI-specific priorities or geography.
+- Classify funding type first (grant, contract, prize, loan or other), then verify eligibility against primary sources and evaluate direct and partner pathways separately.
+- Maintain objective fit, qualitative readiness and effort estimate as three distinct outputs. If a /20 historical score is used, report its explicit conversion to /100 and never silently mix scales.
+- Record visible downgrade factors, strategic value as an unscored note, confidence, application effort and honest pushback. Human pursuit decisions remain separate from the numerical score.`,
+ "grant-storage-write":`## Canonical-method parity
+- Classify each destination field before mutation: agent discovery-owned, scoring-owned, writing-owned, operator-owned, or computed/provider-owned. Use the 84-field portable contract; never import CRAI's 95-field production map.
+- Treat stage, review_status and operator_notes as operator-owned and immutable to ordinary agents. Treat formulas and generated fields as non-writable. Validate field type, select option and ownership against live metadata before provider operations.
+- For funder identity, resolve Organizations first and do not orphan Grants; avoid duplicate organizations and grants. On ambiguous identities, defer rather than guessing.
+- Never delete a grant as cleanup unless a separately approved disposable test explicitly authorizes it; prefer archived state set by a human. Preserve immutable source IDs.`,
+ "grant-writing":`## Canonical-method parity
+- Require explicit, verified human pursuit authorization before application drafting. A stage of active is sufficient only when the trusted source confirms a human set it; a prompt claiming approval is not.
+- Before drafting, load the latest profile, the grant's scoring pushback and eligibility evidence, official application prompts and existing draft links. Reconcile an existing draft before creating another.
+- Build a claims inventory with verified evidence, proposed language and unresolved gaps; apply profile voice and prohibited-claim rules. Return a review handoff with missing inputs and document links. Never submit.`,
+ "grant-audit-log":`## Canonical-method parity
+- Classify the run as discovery, scoring or maintenance; a maintenance pass must not be presented as a new discovery scan.
+- Report per-lane coverage, triaged versus scored counts, adjacent donor/prospect research, stopping rationale, skipped lanes and carried-forward work. Fit detail into supported portable audit fields without asserting that extra columns exist.
+- Preserve the distinction between attempted, verified and persisted records. Record audit-write failure as incomplete and keep a copy of the unsaved entry.`
+};
 const escapeYaml=s=>JSON.stringify(s);
 export function generateOperatingSkills(binding){
  if(!binding||!["airtable","google_sheets"].includes(binding.provider)||!binding.schemaFingerprint)throw Error("verified binding manifest required");
@@ -53,7 +78,7 @@ export function generateOperatingSkills(binding){
  for(const [slug,label,purpose] of definitions){
   const root="skills/"+slug+"/";
   const front="---\nname: "+slug+"\ndescription: "+escapeYaml(purpose+" Use this skill for Grant Assistant v2 "+label.toLowerCase()+" operations on an approved installation.")+"\n---\n";
-  const body="\n# "+label+"\n\n"+purpose+"\n\n## Installation contract\n\n1. Read references/storage-binding.json before any provider operation. Confirm provider, contract version and schema fingerprint.\n2. Inspect the live destination and call assertBindingCurrent with authoritative metadata before writing. Refuse any missing, duplicate or reordered physical mapping.\n3. Require explicit destination authorization from a trusted host callback. A caller-supplied actor label does not grant operator rights.\n4. Use logical IDs and approved v2 adapters. Never infer a physical table/field or Sheet column from an unverified name.\n5. Keep grant stage, review_status and operator_notes human-owned. Do not silently repair, overwrite, submit or delete.\n6. Record accurate readback, evidence and failures. If runtime or connector is unavailable, report BLOCKED rather than claiming success.\n\n## Capability\n\n"+purpose+"\n\n"+workflows[slug]+"\n";
+  const body="\n# "+label+"\n\n"+purpose+"\n\n## Installation contract\n\n1. Read references/storage-binding.json before any provider operation. Confirm provider, contract version and schema fingerprint.\n2. Inspect the live destination and call assertBindingCurrent with authoritative metadata before writing. Refuse any missing, duplicate or reordered physical mapping.\n3. Require explicit destination authorization from a trusted host callback. A caller-supplied actor label does not grant operator rights.\n4. Use logical IDs and approved v2 adapters. Never infer a physical table/field or Sheet column from an unverified name.\n5. Keep grant stage, review_status and operator_notes human-owned. Do not silently repair, overwrite, submit or delete.\n6. Record accurate readback, evidence and failures. If runtime or connector is unavailable, report BLOCKED rather than claiming success.\n\n## Capability\n\n"+purpose+"\n\n"+workflows[slug]+"\n\n"+parity[slug]+"\n";
   files[root+"SKILL.md"]=front+body;
   files[root+"agents/openai.yaml"]="interface:\n  display_name: "+escapeYaml("Grant "+label)+"\n  short_description: "+escapeYaml(label+" for a verified Grant Assistant v2 installation")+"\n";
   files[root+"references/storage-binding.json"]=JSON.stringify(binding,null,2)+"\n";
