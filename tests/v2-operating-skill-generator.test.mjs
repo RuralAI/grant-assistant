@@ -1,0 +1,10 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {buildAirtableProvisioningPlan} from "../src/v2/airtable-provisioning.mjs";
+import {bindSheetsInstallation} from "../src/v2/installation-bindings.mjs";
+import {generateOperatingSkills,verifyOperatingSkills} from "../src/v2/operating-skill-generator.mjs";
+const plan=buildAirtableProvisioningPlan({workspaceId:"test",baseName:"test"});
+const binding=bindSheetsInstallation({spreadsheetId:"test",sheets:plan.tables.map((t,i)=>({sheetId:i,title:t.name,headers:t.fields.map(f=>f.name)}))});
+test("generator emits five complete, bound skill directories",()=>{const out=generateOperatingSkills(binding);assert.equal(out.manifest.skills.length,5);assert.equal(Object.keys(out.files).length,15);assert.equal(verifyOperatingSkills(out),true);for(const x of out.manifest.skills)assert.match(out.files[x.entrypoint],/schema fingerprint/);});
+test("generator output is deterministic and detects tampering",()=>{const a=generateOperatingSkills(binding),b=generateOperatingSkills(binding);assert.deepEqual(a,b);a.files[a.manifest.skills[0].entrypoint]+="tampered";assert.throws(()=>verifyOperatingSkills(a),/changed/);});
+test("generator refuses unbound installation",()=>assert.throws(()=>generateOperatingSkills({provider:"google_sheets"}),/verified binding/));
