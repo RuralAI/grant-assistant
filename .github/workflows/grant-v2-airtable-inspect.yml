@@ -1,0 +1,49 @@
+name: Grant v2 Airtable authenticated inspection
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop/v2-cross-platform-storage
+    paths:
+      - .github/workflows/grant-v2-airtable-inspect.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect existing test base using authenticated repository runtime
+        env:
+          AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+        run: |
+          test -n "$AIRTABLE_TOKEN" || { echo "AIRTABLE_TOKEN secret unavailable"; exit 1; }
+          node --input-type=module <<'NODE'
+          import {buildAirtableProvisioningPlan} from './src/v2/airtable-provisioning.mjs';
+          import {createAirtableMetadataTransport} from './src/v2/airtable-metadata-transport.mjs';
+          import {inspectAirtableInstallation} from './src/v2/airtable-install-inspection-first.mjs';
+          const expectedBaseId='appC8hCEmhYdFxumE';
+          const transport=createAirtableMetadataTransport({token:process.env.AIRTABLE_TOKEN});
+          const bases=await transport.listBases();
+          const matching=bases.filter(b=>b.id===expectedBaseId);
+          if(matching.length!==1||matching[0].name!=='Grant Assistant v2 — Test')throw Error('Expected test base not accessible with exact name');
+          const workspaceId=matching[0].workspaceId;
+          if(!workspaceId)throw Error('Workspace membership not provided by metadata API; stop for review');
+          const plan=buildAirtableProvisioningPlan({workspaceId,baseName:matching[0].name});
+          const result=await inspectAirtableInstallation({plan,discovery:{listBases:()=>transport.listBases()},transport});
+          const exact=result.candidates.filter(c=>c.baseId===expectedBaseId);
+          if(result.status!=='compatible'||result.candidates.length!==1||exact.length!==1) {
+            console.error(JSON.stringify({status:result.status,candidates:result.candidates.map(c=>({baseId:c.baseId,compatible:c.compatible,errors:c.errors}))}));
+            throw Error('Existing test base did not pass exact v2 schema inspection');
+          }
+          const counts=Object.values(exact[0].config.collections).map(c=>Object.keys(c.fields).length);
+          if(counts.length!==4||counts.reduce((a,b)=>a+b,0)!==84)throw Error('Unexpected field count');
+          console.log(JSON.stringify({status:'PASS',baseId:expectedBaseId,collections:4,fields:84,mode:'read_only_authenticated_metadata_inspection'}));
+          NODE
