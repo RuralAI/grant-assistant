@@ -1,12 +1,13 @@
 import {classifyInstallation,previewLegacyMigration} from "./installation-detection.mjs";
 import {buildOrganizationSeed} from "./organization-intake.mjs";
 import {bindAirtableInstallation,bindSheetsInstallation,assertBindingCurrent} from "./installation-bindings.mjs";
+import {createAirtableSeedAdapter,createSheetsSeedAdapter} from "./organization-seed-adapters.mjs";
 import {prepareSkillInstallation} from "./skill-registration.mjs";
 /**
  * Provider-neutral installation gate. All provider operations are injected by
  * a trusted host; this module never fabricates an authenticated API session.
  */
-export async function installGrantAssistantV2({provider,platform,destination,inspect,provision,approveProvision,approveSkills,register,verify,organizationIntake,approveSeed,writeSeed,readSeed}){
+export async function installGrantAssistantV2({provider,platform,destination,inspect,provision,approveProvision,approveSkills,register,verify,organizationIntake,approveSeed,writeSeed,readSeed,seedTransport}){
  if(!["airtable","google_sheets"].includes(provider))throw Error("unsupported storage provider");
  if(!["chatgpt","claude"].includes(platform))throw Error("unsupported skill platform");
  if(typeof inspect!=="function")throw Error("trusted live destination inspection required");
@@ -40,11 +41,18 @@ export async function installGrantAssistantV2({provider,platform,destination,ins
  if(seed){
   if(typeof approveSeed!=="function"||await approveSeed({provider,platform,destination,seed})!==true)
    return {status:"BLOCKED",phase:"seed",reason:"organization seed requires explicit approval",seed,provisioned,binding};
-  if(typeof writeSeed!=="function"||typeof readSeed!=="function")
+  let writer=writeSeed,reader=readSeed;
+  if((typeof writer!=="function"||typeof reader!=="function")&&seedTransport){
+   const adapter=provider==="airtable"
+    ?createAirtableSeedAdapter({binding,transport:seedTransport})
+    :createSheetsSeedAdapter({binding,client:seedTransport});
+   writer=adapter.writeSeed;reader=adapter.readSeed;
+  }
+  if(typeof writer!=="function"||typeof reader!=="function")
    return {status:"BLOCKED",phase:"seed",reason:"authenticated seed write and independent readback required",seed,provisioned,binding};
-  const saved=await writeSeed({provider,destination,binding,profile:seed.profile});
+  const saved=await writer({provider,destination,binding,profile:seed.profile});
   if(saved?.written!==true)return {status:"BLOCKED",phase:"seed",reason:"seed write not confirmed",seed,provisioned,binding};
-  const readback=await readSeed({provider,destination,binding,profileId:seed.profile.profile_id});
+  const readback=await reader({provider,destination,binding,profileId:seed.profile.profile_id});
   if(!readback||Object.entries(seed.profile).some(([key,value])=>JSON.stringify(readback[key])!==JSON.stringify(value)))
    return {status:"BLOCKED",phase:"seed",reason:"organization profile readback mismatch",seed,provisioned,binding};
  }
