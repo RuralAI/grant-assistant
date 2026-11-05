@@ -1,0 +1,96 @@
+name: Grant v2 Airtable authenticated seed CRUD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop/v2-cross-platform-storage
+    paths:
+      - .github/workflows/grant-v2-airtable-seed-crud.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grant-v2-airtable-seed-crud
+  cancel-in-progress: false
+
+jobs:
+  seed-crud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Authenticated synthetic adapter test with cleanup
+        env:
+          AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+        run: |
+          test -n "$AIRTABLE_TOKEN" || { echo "AIRTABLE_TOKEN secret unavailable"; exit 1; }
+          node --input-type=module <<'NODE'
+          import {bindAirtableInstallation} from './src/v2/installation-bindings.mjs';
+          import {createAirtableMetadataTransport} from './src/v2/airtable-metadata-transport.mjs';
+          import {createAirtableSeedAdapter} from './src/v2/organization-seed-adapters.mjs';
+          import {randomUUID} from 'node:crypto';
+          const baseId='appC8hCEmhYdFxumE';
+          const token=process.env.AIRTABLE_TOKEN;
+          const metadata=createAirtableMetadataTransport({token});
+          const bases=await metadata.listBases();
+          if(bases.filter(b=>b.id===baseId&&b.name==='Grant Assistant v2 — Test').length!==1)throw Error('Approved disposable base unavailable');
+          const schema=await metadata.getBaseSchema({baseId});
+          const binding=bindAirtableInstallation({...schema,baseId});
+          const tableId=binding.collections.organization_profile.tableId;
+          if(tableId!=='tblan4q8tOLBFWP0e')throw Error('Unexpected profile table; no writes permitted');
+          const profileId='ga-v2-runtime-'+process.env.GITHUB_RUN_ID+'-'+randomUUID();
+          const profile={profile_id:profileId,profile_name:'Synthetic runtime verification',organization_name:'TEST ONLY - Not a real organization',issue_areas:['rural development']};
+          const root='https://api.airtable.com/v0';
+          const call=async(method,url,body)=>{
+            const response=await fetch(url,{method,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+            const payload=await response.json().catch(()=>({}));
+            if(!response.ok)throw Error('Airtable '+method+' returned HTTP '+response.status);
+            return payload;
+          };
+          const url=root+'/'+baseId+'/'+tableId;
+          const transport={
+            listRecords:async({offset})=>call('GET',url+'?pageSize=100'+(offset?'&offset='+encodeURIComponent(offset):'')),
+            createRecord:async({fields})=>call('POST',url,{fields})
+          };
+          const adapter=createAirtableSeedAdapter({binding,transport});
+          let createdId=null;
+          let cleanupVerified=false;
+          const locate=async()=>{
+            const matches=[];let offset;
+            do{
+              const page=await transport.listRecords({offset});
+              for(const r of page.records||[])if(r.fields?.[binding.collections.organization_profile.fields.profile_id]===profileId||r.fields?.profile_id===profileId)matches.push(r);
+              offset=page.offset;
+            }while(offset);
+            return matches;
+          };
+          try{
+            if((await locate()).length)throw Error('Unexpected preexisting synthetic logical ID');
+            const result=await adapter.writeSeed({profile});
+            createdId=result.recordId;
+            if(!createdId)throw Error('Adapter did not confirm create');
+            const readback=await adapter.readSeed({profileId});
+            for(const [key,value] of Object.entries(profile))if(JSON.stringify(readback?.[key])!==JSON.stringify(value))throw Error('Readback mismatch: '+key);
+            const retry=await adapter.writeSeed({profile});
+            if(retry.unchanged!==true)throw Error('Idempotent retry did not return unchanged');
+            let conflictRejected=false;
+            try{await adapter.writeSeed({profile:{...profile,organization_name:'CONFLICTING TEST VALUE'}});}
+            catch(e){conflictRejected=/existing organization profile differs/.test(String(e.message));}
+            if(!conflictRejected)throw Error('Conflicting existing profile was not rejected');
+            if((await locate()).length!==1)throw Error('Duplicate or missing profile after tests');
+            console.log('PASS: authenticated adapter create, readback, idempotent retry, conflict refusal, no duplicate');
+          }finally{
+            // Reconcile ambiguous creation outcomes before cleanup. Delete ONLY records
+            // carrying this run-specific synthetic logical ID.
+            const matches=await locate();
+            for(const r of matches)await call('DELETE',url+'/'+encodeURIComponent(r.id));
+            cleanupVerified=(await locate()).length===0;
+            console.log(cleanupVerified?'PASS: synthetic cleanup verified':'FAIL: synthetic cleanup not verified');
+            if(!cleanupVerified)throw Error('Synthetic cleanup failed; manual reconciliation required');
+          }
+          NODE
