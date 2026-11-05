@@ -1,0 +1,39 @@
+name: Grant v2 Google Sheets authenticated inspection
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop/v2-cross-platform-storage]
+    paths: [.github/workflows/grant-v2-google-inspect.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect exact native spreadsheet contract (read only)
+        env:
+          GOOGLE_SHEETS_ACCESS_TOKEN: ${{ secrets.GOOGLE_SHEETS_ACCESS_TOKEN }}
+        run: |
+          test -n "$GOOGLE_SHEETS_ACCESS_TOKEN" || { echo "::error::GOOGLE_SHEETS_ACCESS_TOKEN secret unavailable; authenticated runtime not yet configured"; exit 1; }
+          node --input-type=module <<'NODE'
+          import {createGoogleSheetsV2Connection} from './src/v2/google-sheets-connection.mjs';
+          import {createGoogleSheetsHttpClient} from './src/v2/google-sheets-http.mjs';
+          const spreadsheetId='1xOnCdCGmy4d4QrwUMm1Aqf4GfmN4R8FJ0TLlIyfkDXA';
+          const token=process.env.GOOGLE_SHEETS_ACCESS_TOKEN;
+          const client=createGoogleSheetsHttpClient({token});
+          const connection=createGoogleSheetsV2Connection({spreadsheetId,client,authorize:()=>false});
+          const expected=Object.values(connection.sheets);
+          if(expected.length!==4||expected.reduce((n,s)=>n+s.headers.length,0)!==84)throw Error('Unexpected repository contract');
+          for(const sheet of expected){
+            const rows=await client.readRows({spreadsheetId,sheetTitle:sheet.title});
+            if(!Array.isArray(rows[0])||JSON.stringify(rows[0])!==JSON.stringify(sheet.headers))throw Error('Exact header mismatch in '+sheet.title);
+          }
+          const result=await connection.inspect();
+          if(!result.ok||result.collections.length!==4)throw Error('Repository inspection failed');
+          console.log(JSON.stringify({status:'PASS',mode:'read_only_authenticated_repository_http',collections:4,fields:84}));
+          NODE
