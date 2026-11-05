@@ -23,7 +23,7 @@ const workflows={
 4. Report readiness separately as ready, needs_work or unknown. An unknown mandatory condition is not a pass.
 5. Prepare an agent-owned patch limited to fit_score, fit_rationale, eligibility_status, eligibility_reason and readiness_status; preserve stage, review_status, operator_notes and grant_id.
 6. Present score, confidence, evidence and disqualifiers for review. Write only with approved authorization and verify readback. Never promote a grant automatically.`,
- "grant-storage-write":`## Provider-bound write procedure
+ "grant-storage-write":`## Provider-bound write procedure\n0. Host connector path: if Node adapters are not available but an authorized Airtable/Google Drive connector is, follow docs/v2/connector-first-installation-playbook.md. Inspect live schema, enforce the same identity, type, ownership and dedup gates, request approval, and verify readback. Never ask the end user for GitHub Actions secrets. If any required invariant cannot be enforced with host tools, return BLOCKED; do not claim the Node adapter ran.
 1. Load the binding JSON and inspect the live provider metadata before EVERY write batch. Verify schemaFingerprint via src/v2/installation-bindings.mjs; refuse drift or absent IDs.
 2. Airtable: use baseId, tableId and every mapped fld ID in the manifest; validate field types and select choices. Encode/decode using src/v2/airtable-codecs.mjs and use createAirtableAdapter with a trusted authorize callback.
 3. Google Sheets: use spreadsheetId, numeric sheetId, exact headers and zero-based column indexes; check headers before operations. Use src/v2/google-sheets-connection.mjs and row transport, never cached row numbers as identity; re-resolve logical ID, detect duplicate rows and stale locators.
