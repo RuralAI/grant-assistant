@@ -4,3 +4,6 @@ For a user requesting Grant Assistant v2 installation, read `skills/grant-assist
 
 ## v2 development testing boundary
 For pre-release tests, use only `develop/v2-cross-platform-storage` at an explicitly recorded commit SHA. Never fetch the default `main` branch for a v2 test. Read `docs/v2/four-platform-acceptance-protocol-2026-11-04.md` and `skills/grant-assistant-v2/references/review-workflow.md` before any destination writes. The CRAI-specific research skills live in the private `RuralAI/crai-skill-library`; their production Airtable write mapping is not a portable installation schema. Report missing access or unsupported installation capability rather than claiming success. Do not merge or deploy production.
+
+## Connector-first end-user path
+Read `docs/v2/connector-first-installation-playbook.md` before installation. Prefer the host's authorized Airtable or Google Drive connector, with inspect/approval/readback gates. Do not request user-managed OAuth tokens or GitHub Actions secrets. Never equate GitHub repository access with skill registration; verify host import and discovery, or report BLOCKED. GitHub Actions credentialed HTTP tests are optional developer diagnostics, not an end-user acceptance gate.
