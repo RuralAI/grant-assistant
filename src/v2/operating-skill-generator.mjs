@@ -72,17 +72,21 @@ const parity={
 - Preserve the distinction between attempted, verified and persisted records. Record audit-write failure as incomplete and keep a copy of the unsaved entry.`
 };
 const escapeYaml=s=>JSON.stringify(s);
-export function generateOperatingSkills(binding){
+export function generateOperatingSkills(binding,{skillPrefix="",displayPrefix=""}={}){
+ if(skillPrefix!==""&&!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(skillPrefix))throw Error("invalid skill prefix: use lowercase letters, digits and hyphens");
+ if(typeof displayPrefix!=="string"||displayPrefix.length>64||/[\r\n]/.test(displayPrefix))throw Error("invalid display prefix");
  if(!binding||!["airtable","google_sheets"].includes(binding.provider)||!binding.schemaFingerprint)throw Error("verified binding manifest required");
- const files={};const manifest={contractVersion:binding.contractVersion,provider:binding.provider,schemaFingerprint:binding.schemaFingerprint,skills:[]};
+ const files={};const manifest={contractVersion:binding.contractVersion,provider:binding.provider,schemaFingerprint:binding.schemaFingerprint,skillPrefix,displayPrefix,skills:[]};
  for(const [slug,label,purpose] of definitions){
-  const root="skills/"+slug+"/";
-  const front="---\nname: "+slug+"\ndescription: "+escapeYaml(purpose+" Use this skill for Grant Assistant v2 "+label.toLowerCase()+" operations on an approved installation.")+"\n---\n";
+  const uniqueName=skillPrefix?skillPrefix+"-"+slug:slug;
+  const displayName=(displayPrefix?displayPrefix+" ":"")+"Grant "+label;
+  const root="skills/"+uniqueName+"/";
+  const front="---\nname: "+uniqueName+"\ndescription: "+escapeYaml(purpose+" Use this skill for Grant Assistant v2 "+label.toLowerCase()+" operations on an approved installation.")+"\n---\n";
   const body="\n# "+label+"\n\n"+purpose+"\n\n## Installation contract\n\n1. Read references/storage-binding.json before any provider operation. Confirm provider, contract version and schema fingerprint.\n2. Inspect the live destination and call assertBindingCurrent with authoritative metadata before writing. Refuse any missing, duplicate or reordered physical mapping.\n3. Require explicit destination authorization from a trusted host callback. A caller-supplied actor label does not grant operator rights.\n4. Use logical IDs and approved v2 adapters. Never infer a physical table/field or Sheet column from an unverified name.\n5. Keep grant stage, review_status and operator_notes human-owned. Do not silently repair, overwrite, submit or delete.\n6. Record accurate readback, evidence and failures. If runtime or connector is unavailable, report BLOCKED rather than claiming success.\n\n## Capability\n\n"+purpose+"\n\n"+workflows[slug]+"\n\n"+parity[slug]+"\n";
   files[root+"SKILL.md"]=front+body;
-  files[root+"agents/openai.yaml"]="interface:\n  display_name: "+escapeYaml("Grant "+label)+"\n  short_description: "+escapeYaml(label+" for a verified Grant Assistant v2 installation")+"\n";
+  files[root+"agents/openai.yaml"]="interface:\n  display_name: "+escapeYaml(displayName)+"\n  short_description: "+escapeYaml(label+" for a verified Grant Assistant v2 installation")+"\n";
   files[root+"references/storage-binding.json"]=JSON.stringify(binding,null,2)+"\n";
-  manifest.skills.push({name:slug,entrypoint:root+"SKILL.md"});
+  manifest.skills.push({name:uniqueName,entrypoint:root+"SKILL.md"});
  }
  const ordered=Object.entries(files).sort(([a],[b])=>a.localeCompare(b));
  manifest.files=ordered.map(([path,content])=>({path,sha256:createHash("sha256").update(content).digest("hex")}));
