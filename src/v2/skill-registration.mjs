@@ -1,10 +1,10 @@
 import {generateOperatingSkills,verifyOperatingSkills} from "./operating-skill-generator.mjs";
 import {assertBindingCurrent} from "./installation-bindings.mjs";
-const names=["grant-prospect-scan","grant-scoring","grant-storage-write","grant-writing","grant-audit-log"];
-export async function prepareSkillInstallation({binding,observedSchema,platform,approve,register,verify}){
+export async function prepareSkillInstallation({binding,observedSchema,platform,approve,register,verify,skillPrefix="",displayPrefix=""}){
  if(!["chatgpt","claude"].includes(platform))throw Error("unsupported skill platform");
  assertBindingCurrent(binding,observedSchema);
- const bundle=generateOperatingSkills(binding);
+ const bundle=generateOperatingSkills(binding,{skillPrefix,displayPrefix});
+ const names=bundle.manifest.skills.map(skill=>skill.name);
  verifyOperatingSkills(bundle);
  if(typeof approve!=="function"||await approve({platform,provider:binding.provider,skills:names,manifest:bundle.manifest})!==true)
   return {status:"BLOCKED",reason:"explicit skill installation approval required",bundle};
