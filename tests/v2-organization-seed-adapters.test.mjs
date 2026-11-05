@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {buildAirtableProvisioningPlan} from "../src/v2/airtable-provisioning.mjs";
 import {bindAirtableInstallation,bindSheetsInstallation} from "../src/v2/installation-bindings.mjs";
+import {installGrantAssistantV2} from "../src/v2/full-install-orchestrator.mjs";
 import {createAirtableSeedAdapter,createSheetsSeedAdapter} from "../src/v2/organization-seed-adapters.mjs";
 const plan=buildAirtableProvisioningPlan({workspaceId:"test",baseName:"test"});
 const airtable=bindAirtableInstallation({baseId:"appSYNTHETIC",tables:plan.tables.map((t,i)=>({id:"tblSYNTH"+i,name:t.name,fields:t.fields.map((f,j)=>({id:"fldSYNTH"+i+"X"+j,name:f.name,type:f.type,...(f.options?{options:f.options}:{})}))}))});
@@ -32,4 +33,21 @@ test("Sheets adapter appends once, independently reads, and blocks changed profi
 test("Sheets adapter blocks drifted headers before writes",async()=>{
  const adapter=createSheetsSeedAdapter({binding:sheets,client:{readRows:async()=>[["wrong"]],appendRow:async()=>{throw Error("must not write")}}});
  await assert.rejects(adapter.writeSeed({profile}),/header drift/);
+});
+
+test("orchestrator uses authenticated Sheets transport after explicit seed approval",async()=>{
+ const rows=[sheets.collections.organization_profile.headers];
+ let writes=0,registrations=0;
+ const metadata={spreadsheetId:"synthetic",sheets:plan.tables.map((t,i)=>({sheetId:i,title:t.name,headers:t.fields.map(f=>f.name)}))};
+ const seedTransport={readRows:async()=>rows,appendRow:async({values})=>{writes++;rows.push(values);return {rowNumber:rows.length}}};
+ const intake={...profile,search_geographies:["CO"],beneficiaries:["rural"],applicant_type:"nonprofit",funding_preferences:["grants"]};
+ const result=await installGrantAssistantV2({provider:"google_sheets",platform:"chatgpt",destination:{id:"synthetic"},inspect:async()=>metadata,organizationIntake:intake,approveSeed:async()=>true,seedTransport,approveSkills:async()=>true,register:async()=>{registrations++;return {installed:true}},verify:async()=>true});
+ assert.equal(result.status,"INSTALLED");assert.equal(result.seeded,true);assert.equal(writes,1);assert.equal(registrations,5);
+});
+test("orchestrator refuses unapproved seed before touching transport",async()=>{
+ let writes=0;
+ const metadata={spreadsheetId:"synthetic",sheets:plan.tables.map((t,i)=>({sheetId:i,title:t.name,headers:t.fields.map(f=>f.name)}))};
+ const intake={...profile,search_geographies:["CO"],beneficiaries:["rural"],applicant_type:"nonprofit",funding_preferences:["grants"]};
+ const result=await installGrantAssistantV2({provider:"google_sheets",platform:"claude",destination:{id:"synthetic"},inspect:async()=>metadata,organizationIntake:intake,approveSeed:async()=>false,seedTransport:{appendRow:async()=>{writes++}}});
+ assert.equal(result.phase,"seed");assert.equal(writes,0);
 });
