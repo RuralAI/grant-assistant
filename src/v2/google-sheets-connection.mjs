@@ -124,7 +124,20 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
     const gate=validateAgentPatch(match.fields,fields);
     if(!gate.ok)throw Error("human-owned grant fields cannot be changed by agent: "+gate.errors.map(e=>e.field).join(", "));
    }
-   await requireReferences(collection,fields,transport);
+   const currentRows=await transport.listRecords({tableId:collection,pageSize:10000});
+   if(currentRows.offset)throw Error("incomplete update scan");
+   const target=currentRows.records.find(r=>r.id===recordId);
+   if(!target)throw Error("record not found");
+   const merged={...target.fields,...fields};
+   if(collection==="grants"){
+    validateGrantValues(merged);
+    const key=duplicateKey(merged),urlKey=grantUrlCycleKey(merged);
+    if(currentRows.records.some(r=>r.id!==recordId&&(
+     (key!==null&&duplicateKey(r.fields)===key)||
+     (urlKey!==null&&grantUrlCycleKey(r.fields)===urlKey)
+    )))throw Error("duplicate grant source identity or URL and cycle");
+   }
+   await requireReferences(collection,merged,transport);
    return transport.updateRecord({tableId:collection,recordId,fields});
   }
  };
