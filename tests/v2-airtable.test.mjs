@@ -30,3 +30,12 @@ test("pagination reads all pages",async()=>{let n=0;const transport={listRecords
 test("append-only audit prevents update",async()=>{const auditConfig={baseId,collections:{search_audit:{tableId,fields:{run_id:"run_id"},codecs:{run_id:"text"}}}};const transport={listRecords:async()=>({records:[{id:"rec1",fields:{run_id:"run1"}}]}),createRecord:async()=>{},updateRecord:async()=>{throw Error("should not write")}};const a=createAirtableAdapter({config:auditConfig,transport,schema:{tables:[{id:tableId,fields:[{id:"run_id",type:"singleLineText"}]}]},authorize});await assert.rejects(()=>a.upsert("search_audit",{run_id:"run1"}),e=>e.code==="APPEND_ONLY");});
 
 test("caller cannot self-assert operator with boolean authorization",async()=>{const f=fixture();await f.adapter.upsert("grants",grant);await assert.rejects(()=>f.adapter.upsert("grants",{grant_id:"g1",stage:"active"},{actor:"operator"}),e=>e.code==="AUTH");assert.equal(f.records[0].fields.stage,"possible");});
+
+test("ambiguous Airtable create is reconciled by logical ID on retry",async()=>{
+ const f=fixture();
+ const original=f.adapter.upsert.bind(f.adapter);
+ await original("grants",grant);
+ const retry=await original("grants",grant);
+ assert.equal(retry.action,"unchanged");
+ assert.equal(f.writes,1);
+});
