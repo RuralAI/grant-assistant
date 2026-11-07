@@ -1,7 +1,16 @@
 import {buildAirtableProvisioningPlan} from "./airtable-provisioning.mjs";
 import {createSheetsRowTransport} from "./google-sheets-row-transport.mjs";
 import {createGoogleSheetsHttpClient} from "./google-sheets-http.mjs";
-import {validateAgentPatch} from "./normalize.mjs";
+import {duplicateKey,validateAgentPatch} from "./normalize.mjs";
+function grantUrlCycleKey(grant){
+ if(typeof grant.source_url!=="string"||!grant.source_url.trim())return null;
+ try{
+  const url=new URL(grant.source_url);
+  if(!["https:","http:"].includes(url.protocol))return null;
+  url.hash="";
+  return "url:"+url.href.replace(/\\/$/,"")+":cycle:"+String(grant.opportunity_cycle??"").trim().toLowerCase();
+ }catch{return null;}
+}
 // Bind the existing 84-field logical contract to the four Google worksheets.
 // No spreadsheet creation, credential storage, or writes during initialization.
 export function createGoogleSheetsV2Connection({spreadsheetId,token,client,authorize}={}){
@@ -34,6 +43,14 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    const existing=await transport.listRecords({tableId:collection,pageSize:10000});
    if(existing.offset)throw Error("incomplete duplicate scan");
    if(existing.records.some(r=>r.fields[identity]===fields[identity]))throw Error("duplicate logical ID");
+   if(collection==="grants"){
+    const key=duplicateKey(fields);
+    const urlKey=grantUrlCycleKey(fields);
+    if(existing.records.some(r=>(
+      (key!==null&&duplicateKey(r.fields)===key)||
+      (urlKey!==null&&grantUrlCycleKey(r.fields)===urlKey)
+    )))throw Error("duplicate grant source identity or URL and cycle");
+   }
    if(collection==="grants"&&!operator){
     if(fields.stage!==undefined&&fields.stage!=="possible")throw Error("agent cannot promote grant");
     if(fields.review_status!==undefined&&fields.review_status!=="Needs Research")throw Error("agent cannot set human review decision");
