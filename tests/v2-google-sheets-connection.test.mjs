@@ -174,7 +174,7 @@ test("C25 strict Sheets complete profile create and update",async()=>{
  const profile={profile_id:"p-strict",profile_name:"Synthetic Profile",organization_name:"Synthetic CRAI",headquarters_geography:"Colorado",applicant_type:"nonprofit",issue_areas:["rural"],search_geographies:["Colorado"],beneficiaries:["rural communities"]};
  const record=await c.create("organization_profile",profile);
  assert.equal((await c.list("organization_profile")).records[0].fields.profile_name,"Synthetic Profile");
- await c.update("organization_profile",record.id,{profile_name:"Updated Profile"});
+ await c.update("organization_profile",record.id,{profile_id:"p-strict",profile_name:"Updated Profile"});
  assert.equal((await c.list("organization_profile")).records[0].fields.profile_name,"Updated Profile");
 });
 test("C26 strict Sheets complete audit append",async()=>{
