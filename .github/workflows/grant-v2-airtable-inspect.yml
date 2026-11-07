@@ -47,3 +47,4 @@ jobs:
           if(counts.length!==4||counts.reduce((a,b)=>a+b,0)!==84)throw Error('Unexpected field count');
           console.log(JSON.stringify({status:'PASS',baseId:expectedBaseId,collections:4,fields:84,mode:'read_only_authenticated_metadata_inspection'}));
           NODE
+# Authenticated adapter gate verification trigger: 2026-11-07
