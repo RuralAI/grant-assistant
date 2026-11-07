@@ -25,6 +25,27 @@ function validateGrantControls(fields){
  if(fields.stage!==undefined&&!STAGES.has(fields.stage))throw Error("invalid grant stage");
  if(fields.review_status!==undefined&&!REVIEWS.has(fields.review_status))throw Error("invalid grant review_status");
 }
+function validateGrantValues(fields){
+ for(const name of ["award_min","award_max","fit_score"]){
+  if(fields[name]!==undefined&&fields[name]!==null&&(typeof fields[name]!=="number"||!Number.isFinite(fields[name])||fields[name]<0))throw Error("invalid nonnegative numeric field: "+name);
+ }
+ for(const name of ["deadline","restriction_until"]){
+  const v=fields[name];
+  if(v!==undefined&&v!==null&&(typeof v!=="string"||!/^\\d{4}-\\d{2}-\\d{2}$/.test(v)||Number.isNaN(Date.parse(v))||new Date(v).toISOString().slice(0,10)!==v))throw Error("invalid ISO date: "+name);
+ }
+ for(const name of ["source_url"]){
+  const v=fields[name];
+  if(v!==undefined&&v!==null){
+   try{const u=new URL(v);if(typeof v!=="string"||!["http:","https:"].includes(u.protocol))throw Error();}
+   catch{throw Error("invalid HTTP(S) URL: "+name);}
+  }
+ }
+ for(const name of ["eligible_geographies"]){
+  const v=fields[name];
+  if(v!==undefined&&v!==null&&(!Array.isArray(v)||v.some(x=>typeof x!=="string")))throw Error("invalid string array: "+name);
+ }
+ if(fields.award_min!==undefined&&fields.award_max!==undefined&&fields.award_min!==null&&fields.award_max!==null&&fields.award_min>fields.award_max)throw Error("award_max less than award_min");
+}
 // Bind the existing 84-field logical contract to the four Google worksheets.
 // No spreadsheet creation, credential storage, or writes during initialization.
 export function createGoogleSheetsV2Connection({spreadsheetId,token,client,authorize}={}){
@@ -53,7 +74,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    if(!permission)throw Error("write not authorized");
    const operator=permission!==true&&permission?.actor==="operator";
    assertKnownFields(collection,fields,sheets);
-   if(collection==="grants")validateGrantControls(fields);
+   if(collection==="grants"){validateGrantControls(fields);validateGrantValues(fields);}
    const identity=sheets[collection]?.identityField;
    if(!identity||typeof fields?.[identity]!=="string"||!fields[identity].trim())throw Error("logical identity required");
    const existing=await transport.listRecords({tableId:collection,pageSize:10000});
