@@ -111,3 +111,11 @@ test("C17 Sheets profile fields reject invalid structured and numeric data",asyn
  await assert.rejects(()=>c.create("organization_profile",{profile_id:"p-bad5",annual_budget:-2}),/invalid profile amount/);
  assert.equal((await c.list("organization_profile")).records.length,0);
 });
+
+test("C18 Sheets audit structured fields and source identities fail closed",async()=>{
+ const c=setup();
+ await assert.rejects(()=>c.create("search_audit",{run_id:"bad-1",queries_run:"not-array"}),/invalid audit string array/);
+ await assert.rejects(()=>c.create("search_audit",{run_id:"bad-2",sources_checked:["website"]}),/invalid audit object array/);
+ await assert.rejects(()=>c.create("search_audit",{run_id:"bad-3",sources_checked:[{name:"no identity"}]}),/audit source identity required/);
+ assert.equal((await c.list("search_audit")).records.length,0);
+});
