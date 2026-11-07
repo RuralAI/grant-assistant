@@ -154,3 +154,16 @@ test("C22 strict Sheets grants round-trip complete normalized record",async()=>{
  await c.update("grants",created.id,{grant_id:"grant-complete",title:"Updated Rural Grant"});
  assert.equal((await c.list("grants")).records[0].fields.title,"Updated Rural Grant");
 });
+
+test("C23 strict Sheets profile rejects incomplete required context",async()=>{
+ const c=createGoogleSheetsV2Connection({spreadsheetId:"test",client,authorize:async()=>({actor:"operator"}),strictCompleteRecords:true});
+ for(const sheet of Object.values(c.sheets))rows.set(sheet.title,[sheet.headers]);
+ await assert.rejects(()=>c.create("organization_profile",{profile_id:"p-complete",profile_name:"Synthetic",organization_name:"Test Organization"}),/VALIDATION:/);
+ assert.equal((await c.list("organization_profile")).records.length,0);
+});
+test("C24 strict Sheets Search Audit rejects incomplete append and preserves empty journal",async()=>{
+ const c=createGoogleSheetsV2Connection({spreadsheetId:"test",client,authorize:async()=>({actor:"operator"}),strictCompleteRecords:true});
+ for(const sheet of Object.values(c.sheets))rows.set(sheet.title,[sheet.headers]);
+ await assert.rejects(()=>c.create("search_audit",{run_id:"run-complete",audit_label:"Synthetic audit"}),/VALIDATION:/);
+ assert.equal((await c.list("search_audit")).records.length,0);
+});
