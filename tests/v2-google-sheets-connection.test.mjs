@@ -67,3 +67,14 @@ test("C12 Sheets refuses malformed grant values before writes",async()=>{
  await assert.rejects(()=>c.update("grants",good.id,{grant_id:"good",fit_score:-1}),/invalid nonnegative numeric field/);
  assert.equal((await c.list("grants")).records.length,1);
 });
+
+test("C13 Sheets requires existing referenced profiles and organizations",async()=>{
+ const c=setup();
+ await assert.rejects(()=>c.create("grants",{grant_id:"g-missing",search_profile_id:"p-missing"}),/missing reference: search_profile_id/);
+ await assert.rejects(()=>c.create("grants",{grant_id:"g-missing2",funder_organization_id:"o-missing"}),/missing reference: funder_organization_id/);
+ await assert.rejects(()=>c.create("search_audit",{run_id:"r-missing",profile_id:"p-missing"}),/missing reference: profile_id/);
+ await c.create("organization_profile",{profile_id:"p-valid"});
+ await c.create("organizations",{organization_id:"o-valid"});
+ await c.create("grants",{grant_id:"g-valid",search_profile_id:"p-valid",funder_organization_id:"o-valid"});
+ assert.equal((await c.list("grants")).records.length,1);
+});
