@@ -1,3 +1,4 @@
+// CI validation trigger: approved test-only run; no behavioral changes.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {verifyAirtableSchema,encodeAirtable,decodeAirtable} from "../src/v2/airtable-codecs.mjs";
