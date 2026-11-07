@@ -11,6 +11,12 @@ function grantUrlCycleKey(grant){
   return "url:"+url.href.replace(/\/$/,"")+":cycle:"+String(grant.opportunity_cycle??"").trim().toLowerCase();
  }catch{return null;}
 }
+const STAGES=new Set(["possible","active","awarded","watchlist","archived"]);
+const REVIEWS=new Set(["Pending Review","Approved","Rejected","Needs Research"]);
+function validateGrantControls(fields){
+ if(fields.stage!==undefined&&!STAGES.has(fields.stage))throw Error("invalid grant stage");
+ if(fields.review_status!==undefined&&!REVIEWS.has(fields.review_status))throw Error("invalid grant review_status");
+}
 // Bind the existing 84-field logical contract to the four Google worksheets.
 // No spreadsheet creation, credential storage, or writes during initialization.
 export function createGoogleSheetsV2Connection({spreadsheetId,token,client,authorize}={}){
@@ -38,6 +44,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    const permission=await authorize({action:"create",collection,fields,context});
    if(!permission)throw Error("write not authorized");
    const operator=permission!==true&&permission?.actor==="operator";
+   if(collection==="grants")validateGrantControls(fields);
    const identity=sheets[collection]?.identityField;
    if(!identity||typeof fields?.[identity]!=="string"||!fields[identity].trim())throw Error("logical identity required");
    const existing=await transport.listRecords({tableId:collection,pageSize:10000});
@@ -56,12 +63,14 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
     if(fields.review_status!==undefined&&fields.review_status!=="Needs Research")throw Error("agent cannot set human review decision");
     if(fields.operator_notes)throw Error("agent cannot set operator notes");
    }
-   return transport.createRecord({tableId:collection,fields});
+   const payload=collection==="grants"?{stage:"possible",review_status:"Needs Research",...fields}:fields;
+   return transport.createRecord({tableId:collection,fields:payload});
   },
   async update(collection,recordId,fields,context){
    const permission=await authorize({action:"update",collection,recordId,fields,context});
    if(!permission)throw Error("write not authorized");
    if(collection==="search_audit")throw Error("APPEND_ONLY: search audit cannot be updated");
+   if(collection==="grants")validateGrantControls(fields);
    const operator=permission!==true&&permission?.actor==="operator";
    if(collection==="grants"&&!operator){
     const current=await transport.listRecords({tableId:collection,pageSize:10000});
