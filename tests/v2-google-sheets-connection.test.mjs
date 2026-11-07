@@ -78,3 +78,17 @@ test("C13 Sheets requires existing referenced profiles and organizations",async(
  await c.create("grants",{grant_id:"g-valid",search_profile_id:"p-valid",funder_organization_id:"o-valid"});
  assert.equal((await c.list("grants")).records.length,1);
 });
+
+test("C14 Sheets refuses grant source collision introduced by update",async()=>{
+ const c=setup();
+ const first=await c.create("grants",{grant_id:"g-one",source_url:"https://example.org/a",opportunity_cycle:"2026"});
+ const second=await c.create("grants",{grant_id:"g-two",source_url:"https://example.org/b",opportunity_cycle:"2026"});
+ await assert.rejects(()=>c.update("grants",second.id,{grant_id:"g-two",source_url:"https://example.org/a"}),/duplicate grant/);
+ assert.equal((await c.list("grants")).records.find(r=>r.id===second.id).fields.source_url,"https://example.org/b");
+});
+test("C15 Sheets rejects missing references on update without changing the row",async()=>{
+ const c=setup();
+ const first=await c.create("grants",{grant_id:"g-one"});
+ await assert.rejects(()=>c.update("grants",first.id,{grant_id:"g-one",search_profile_id:"missing"}),/missing reference/);
+ assert.equal((await c.list("grants")).records[0].fields.search_profile_id,undefined);
+});
