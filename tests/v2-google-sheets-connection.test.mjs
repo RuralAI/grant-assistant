@@ -36,3 +36,14 @@ test("C09 Search Audit is append-only for operator and agent",async()=>{
  await assert.rejects(()=>c.update("search_audit",r.id,{run_id:"run-1"}),/APPEND_ONLY/);
  assert.equal((await c.list("search_audit")).records.length,1);
 });
+
+test("C10 Sheets grants default to safe review state and reject invalid controls",async()=>{
+ const c=setup();
+ const created=await c.create("grants",{grant_id:"safe-1",title:"Synthetic"});
+ const found=(await c.list("grants")).records.find(r=>r.id===created.id);
+ assert.equal(found.fields.stage,"possible");
+ assert.equal(found.fields.review_status,"Needs Research");
+ await assert.rejects(()=>c.create("grants",{grant_id:"bad-1",stage:"invented"}),/invalid grant stage/);
+ await assert.rejects(()=>c.create("grants",{grant_id:"bad-2",review_status:"Autopproved"}),/invalid grant review_status/);
+ await assert.rejects(()=>c.update("grants",created.id,{stage:"invented"}),/invalid grant stage/);
+});
