@@ -107,7 +107,7 @@ function validateSharedValues(collection,fields){
  const timestamps=collection==="organizations"?["updated_at"]:collection==="search_audit"?["started_at","completed_at","created_at"]:collection==="organization_profile"?["updated_at"]:[];
  for(const name of timestamps){
   const v=fields[name];if(v===undefined||v===null||v==="")continue;
-  if(typeof v!=="string"||!/^\\d{4}-\\d{2}-\\d{2}T.*(?:Z|[+-]\\d{2}:\\d{2})$/.test(v)||!Number.isFinite(Date.parse(v)))throw Error("invalid timezone timestamp: "+name);
+  if(typeof v!=="string"||!/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(v)||!Number.isFinite(Date.parse(v)))throw Error("invalid timezone timestamp: "+name);
  }
  if(collection==="search_audit"){
   for(const name of ["queries_run","gaps","next_searches","carried_forward"]){
