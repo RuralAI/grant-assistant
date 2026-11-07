@@ -144,3 +144,13 @@ test("C21 strict Sheets create accepts complete organization and validates seria
  assert.equal((await c.list("organizations")).records[0].fields.name,"Updated Organization");
  await assert.rejects(()=>c.update("organizations",first.id,{organization_id:"org-1",contact_email:"invalid-email"}),/invalid collection values: contact_email/);
 });
+
+test("C22 strict Sheets grants round-trip complete normalized record",async()=>{
+ const c=createGoogleSheetsV2Connection({spreadsheetId:"test",client,authorize:async()=>({actor:"operator"}),strictCompleteRecords:true});
+ for(const sheet of Object.values(c.sheets))rows.set(sheet.title,[sheet.headers]);
+ const created=await c.create("grants",{grant_id:"grant-complete",title:"Synthetic Rural Grant",source_url:"https://example.org/grant",eligible_geographies:["Colorado"],stage:"possible",review_status:"Needs Research"});
+ const found=(await c.list("grants")).records.find(r=>r.id===created.id);
+ assert.equal(found.fields.title,"Synthetic Rural Grant");
+ await c.update("grants",created.id,{grant_id:"grant-complete",title:"Updated Rural Grant"});
+ assert.equal((await c.list("grants")).records[0].fields.title,"Updated Rural Grant");
+});
