@@ -185,3 +185,10 @@ test("C26 strict Sheets complete audit append",async()=>{
  await c.create("search_audit",{run_id:"audit-strict",audit_label:"Synthetic Audit",profile_id:"p-audit",started_at:stamp,completed_at:stamp,created_at:stamp,mode:"discovery",queries_run:["rural grants"],sources_checked:[{source:"https://example.org"}],opportunities_identified:0,opportunities_added:0,opportunities_scored:0,opportunities_deferred:0,coverage_summary:"Synthetic coverage",stopping_rationale:"Completed",gaps:[],next_searches:[],carried_forward:[]});
  assert.equal((await c.list("search_audit")).records.length,1);
 });
+
+test("C27 strict complete records are default without explicit option",async()=>{
+ const c=createGoogleSheetsV2Connection({spreadsheetId:"test",client,authorize:async()=>({actor:"operator"})});
+ for(const sheet of Object.values(c.sheets))rows.set(sheet.title,[sheet.headers]);
+ await assert.rejects(()=>c.create("organizations",{organization_id:"incomplete"}),/VALIDATION:/);
+ assert.equal((await c.list("organizations")).records.length,0);
+});
