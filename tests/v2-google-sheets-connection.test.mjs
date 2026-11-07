@@ -72,7 +72,7 @@ test("C13 Sheets requires existing referenced profiles and organizations",async(
  const c=setup();
  await assert.rejects(()=>c.create("grants",{grant_id:"g-missing",title:"Synthetic Missing Grant",search_profile_id:"p-missing"}),/missing reference: search_profile_id/);
  await assert.rejects(()=>c.create("grants",{grant_id:"g-missing2",title:"Synthetic Missing Grant Two",funder_organization_id:"o-missing"}),/missing reference: funder_organization_id/);
- await assert.rejects(()=>c.create("search_audit",{run_id:"r-missing",profile_id:"p-missing"}),/missing reference: profile_id/);
+ await assert.rejects(()=>c.create("search_audit",{run_id:"r-missing",audit_label:"Synthetic Missing Profile",profile_id:"p-missing",started_at:"2026-11-07T12:00:00Z",completed_at:"2026-11-07T12:00:00Z",created_at:"2026-11-07T12:00:00Z",mode:"discovery",queries_run:["synthetic"],sources_checked:[{source:"https://example.org"}],opportunities_identified:0,opportunities_added:0,opportunities_scored:0,opportunities_deferred:0,coverage_summary:"Test coverage",stopping_rationale:"Complete",gaps:[],next_searches:[],carried_forward:[]}),/missing reference: profile_id/);
  await c.create("organization_profile",{profile_id:"p-valid",profile_name:"Synthetic Profile",organization_name:"Synthetic CRAI",headquarters_geography:"Colorado",applicant_type:"nonprofit",issue_areas:["rural"],search_geographies:["Colorado"],beneficiaries:["communities"]});
  await c.create("organizations",{organization_id:"o-valid",name:"Synthetic Organization",updated_at:"2026-11-07T12:00:00Z"});
  await c.create("grants",{grant_id:"g-valid",title:"Synthetic Valid Grant",search_profile_id:"p-valid",funder_organization_id:"o-valid"});
