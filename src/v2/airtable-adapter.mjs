@@ -78,6 +78,8 @@ export function createAirtableAdapter({config,transport,schema=null,authorize=nu
     check(actor!=="operator"||trustedOperator,"AUTH","operator authority requires trusted authorization");
     const validator=validators[collection],idField=ids[collection],def=config.collections[collection];
     check(input&&typeof input==="object"&&!Array.isArray(input),"VALIDATION","record object required");
+    const unexpected=Object.keys(input).filter(field=>!Object.hasOwn(def.fields,field));
+    check(unexpected.length===0,"VALIDATION","unknown or unmapped fields: "+unexpected.join(", "));
     const key=input[idField];check(typeof key==="string"&&key.trim(),"IDENTITY","logical ID required");
     const existingRows=await rows(collection);
     const matches=existingRows.filter(r=>r.value[idField]===key);
