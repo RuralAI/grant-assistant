@@ -101,3 +101,13 @@ test("C16 Sheets validates organization URLs and audit counts before writing",as
  assert.equal((await c.list("organizations")).records.length,0);
  assert.equal((await c.list("search_audit")).records.length,0);
 });
+
+test("C17 Sheets profile fields reject invalid structured and numeric data",async()=>{
+ const c=setup();
+ await assert.rejects(()=>c.create("organization_profile",{profile_id:"p-bad",issue_areas:"rural"}),/invalid profile string array/);
+ await assert.rejects(()=>c.create("organization_profile",{profile_id:"p-bad2",funding_preferences:["invalid"]}),/invalid profile object array/);
+ await assert.rejects(()=>c.create("organization_profile",{profile_id:"p-bad3",federal_search_enabled:"true"}),/invalid federal_search_enabled/);
+ await assert.rejects(()=>c.create("organization_profile",{profile_id:"p-bad4",founded_year:1700}),/invalid profile integer/);
+ await assert.rejects(()=>c.create("organization_profile",{profile_id:"p-bad5",annual_budget:-2}),/invalid profile amount/);
+ assert.equal((await c.list("organization_profile")).records.length,0);
+});
