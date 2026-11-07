@@ -44,6 +44,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
   async update(collection,recordId,fields,context){
    const permission=await authorize({action:"update",collection,recordId,fields,context});
    if(!permission)throw Error("write not authorized");
+   if(collection==="search_audit")throw Error("APPEND_ONLY: search audit cannot be updated");
    const operator=permission!==true&&permission?.actor==="operator";
    if(collection==="grants"&&!operator){
     const current=await transport.listRecords({tableId:collection,pageSize:10000});
