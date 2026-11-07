@@ -1,5 +1,4 @@
 import {createHash} from "node:crypto";
-import {assertBindingCurrent} from "./installation-bindings.mjs";
 const definitions=[
  ["grant-prospect-scan","Prospect Scan","Research funding opportunities from authoritative funder sources; retain canonical source URLs, observed cycles, eligibility uncertainty and evidence. Never fabricate verification."],
  ["grant-scoring","Grant Scoring","Score eligibility, fit and readiness separately; record rationale, evidence and unknowns. Do not change human-owned stage, review_status or operator_notes."],
