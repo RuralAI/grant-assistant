@@ -126,3 +126,12 @@ test("C19 complete-record validation enforces required fields for all four colle
  }
  assert.throws(()=>validateCompleteSheetsRecord("nonexistent",{}),/unknown collection/);
 });
+
+test("C20 strict Sheets write mode rejects incomplete records before provider writes",async()=>{
+ const c=createGoogleSheetsV2Connection({spreadsheetId:"test",client,authorize:async()=>({actor:"operator"}),strictCompleteRecords:true});
+ for(const sheet of Object.values(c.sheets))rows.set(sheet.title,[sheet.headers]);
+ for(const [collection,identity] of [["organization_profile","profile_id"],["organizations","organization_id"],["grants","grant_id"],["search_audit","run_id"]]){
+  await assert.rejects(()=>c.create(collection,{[identity]:"synthetic"}),/VALIDATION:/);
+  assert.equal((await c.list(collection)).records.length,0);
+ }
+});
