@@ -46,7 +46,29 @@ function validateGrantValues(fields){
  }
  if(fields.award_min!==undefined&&fields.award_max!==undefined&&fields.award_min!==null&&fields.award_max!==null&&fields.award_min>fields.award_max)throw Error("award_max less than award_min");
 }
+function validateProfileValues(fields){
+ const arrays=["issue_areas","search_geographies","beneficiaries","other_eligibility_barriers","extra_search_terms"];
+ for(const name of arrays){
+  const v=fields[name];if(v===undefined||v===null)continue;
+  if(!Array.isArray(v)||v.some(x=>typeof x!=="string"))throw Error("invalid profile string array: "+name);
+ }
+ for(const name of ["funding_preferences","programs"]){
+  const v=fields[name];if(v===undefined||v===null)continue;
+  if(!Array.isArray(v)||v.some(x=>x===null||typeof x!=="object"||Array.isArray(x)))throw Error("invalid profile object array: "+name);
+ }
+ if(fields.federal_search_enabled!==undefined&&fields.federal_search_enabled!==null&&typeof fields.federal_search_enabled!=="boolean")throw Error("invalid federal_search_enabled");
+ for(const name of ["founded_year","audited_financial_years"]){
+  const v=fields[name];if(v===undefined||v===null)continue;
+  if(!Number.isSafeInteger(v)||v<0||(name==="founded_year"&&(v<1800||v>2100)))throw Error("invalid profile integer: "+name);
+ }
+ for(const name of ["annual_budget","preferred_award_min","preferred_award_max"]){
+  const v=fields[name];if(v===undefined||v===null)continue;
+  if(typeof v!=="number"||!Number.isFinite(v)||v<0)throw Error("invalid profile amount: "+name);
+ }
+ if(fields.preferred_award_min!==undefined&&fields.preferred_award_max!==undefined&&fields.preferred_award_min>fields.preferred_award_max)throw Error("preferred_award_max less than minimum");
+}
 function validateSharedValues(collection,fields){
+ if(collection==="organization_profile")validateProfileValues(fields);
  const urls=collection==="organizations"?["website_url","source_url"]:collection==="organization_profile"?["website_url"]:collection==="grants"?["source_url","application_url","funder_url"]:[];
  for(const name of urls){
   const v=fields[name];if(v===undefined||v===null||v==="")continue;
