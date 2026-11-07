@@ -167,3 +167,21 @@ test("C24 strict Sheets Search Audit rejects incomplete append and preserves emp
  await assert.rejects(()=>c.create("search_audit",{run_id:"run-complete",audit_label:"Synthetic audit"}),/VALIDATION:/);
  assert.equal((await c.list("search_audit")).records.length,0);
 });
+
+test("C25 strict Sheets complete profile create and update",async()=>{
+ const c=createGoogleSheetsV2Connection({spreadsheetId:"test",client,authorize:async()=>({actor:"operator"}),strictCompleteRecords:true});
+ for(const sheet of Object.values(c.sheets))rows.set(sheet.title,[sheet.headers]);
+ const profile={profile_id:"p-strict",profile_name:"Synthetic Profile",organization_name:"Synthetic CRAI",headquarters_geography:"Colorado",applicant_type:"nonprofit",issue_areas:["rural"],search_geographies:["Colorado"],beneficiaries:["rural communities"]};
+ const record=await c.create("organization_profile",profile);
+ assert.equal((await c.list("organization_profile")).records[0].fields.profile_name,"Synthetic Profile");
+ await c.update("organization_profile",record.id,{profile_name:"Updated Profile"});
+ assert.equal((await c.list("organization_profile")).records[0].fields.profile_name,"Updated Profile");
+});
+test("C26 strict Sheets complete audit append",async()=>{
+ const c=createGoogleSheetsV2Connection({spreadsheetId:"test",client,authorize:async()=>({actor:"operator"}),strictCompleteRecords:true});
+ for(const sheet of Object.values(c.sheets))rows.set(sheet.title,[sheet.headers]);
+ await c.create("organization_profile",{profile_id:"p-audit",profile_name:"Audit Profile",organization_name:"Synthetic CRAI",headquarters_geography:"Colorado",applicant_type:"nonprofit",issue_areas:["rural"],search_geographies:["Colorado"],beneficiaries:["rural communities"]});
+ const stamp="2026-11-07T12:00:00Z";
+ await c.create("search_audit",{run_id:"audit-strict",audit_label:"Synthetic Audit",profile_id:"p-audit",started_at:stamp,completed_at:stamp,created_at:stamp,mode:"discovery",queries_run:["rural grants"],sources_checked:[{source:"https://example.org"}],opportunities_identified:0,opportunities_added:0,opportunities_scored:0,opportunities_deferred:0,coverage_summary:"Synthetic coverage",stopping_rationale:"Completed",gaps:[],next_searches:[],carried_forward:[]});
+ assert.equal((await c.list("search_audit")).records.length,1);
+});
