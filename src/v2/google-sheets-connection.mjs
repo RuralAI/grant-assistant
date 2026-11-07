@@ -82,6 +82,17 @@ function validateSharedValues(collection,fields){
   if(typeof v!=="string"||!/^\\d{4}-\\d{2}-\\d{2}T.*(?:Z|[+-]\\d{2}:\\d{2})$/.test(v)||!Number.isFinite(Date.parse(v)))throw Error("invalid timezone timestamp: "+name);
  }
  if(collection==="search_audit"){
+  for(const name of ["queries_run","gaps","next_searches","carried_forward"]){
+   const v=fields[name];if(v===undefined||v===null)continue;
+   if(!Array.isArray(v)||v.some(x=>typeof x!=="string"))throw Error("invalid audit string array: "+name);
+  }
+  for(const name of ["sources_checked","triage_details","updated_records"]){
+   const v=fields[name];if(v===undefined||v===null)continue;
+   if(!Array.isArray(v)||v.some(x=>x===null||typeof x!=="object"||Array.isArray(x)))throw Error("invalid audit object array: "+name);
+  }
+  if(Array.isArray(fields.sources_checked)&&fields.sources_checked.some(x=>!x.source))throw Error("audit source identity required");
+ }
+ if(collection==="search_audit"){
   for(const name of ["opportunities_identified","opportunities_added","opportunities_scored","opportunities_deferred"]){
    const v=fields[name];if(v===undefined||v===null||v==="")continue;
    if(typeof v!=="number"||!Number.isSafeInteger(v)||v<0)throw Error("invalid nonnegative count: "+name);
