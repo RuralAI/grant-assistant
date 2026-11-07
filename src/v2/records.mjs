@@ -69,6 +69,7 @@ export function normalizeOrganization(input) {
 export function normalizeSearchAudit(input) {
   const errors=begin(input);if(errors.length)return done(errors,null);
   const value={
+    audit_label:requiredString(input.audit_label,"audit_label",errors),
     run_id:requiredString(input.run_id,"run_id",errors),
     started_at:isoTimestamp(input.started_at,"started_at",errors,true),
     completed_at:isoTimestamp(input.completed_at,"completed_at",errors,true),
@@ -78,9 +79,9 @@ export function normalizeSearchAudit(input) {
     queries_run:stringArray(input.queries_run,"queries_run",errors,true),
     sources_checked:objectsArray(input.sources_checked,"sources_checked",errors,true),
     opportunities_identified:count(input.opportunities_identified,"opportunities_identified",errors),
-    added:count(input.added,"added",errors),
-    scored:count(input.scored,"scored",errors),
-    deferred:count(input.deferred,"deferred",errors),
+    opportunities_added:count(input.opportunities_added,"opportunities_added",errors),
+    opportunities_scored:count(input.opportunities_scored,"opportunities_scored",errors),
+    opportunities_deferred:count(input.opportunities_deferred,"opportunities_deferred",errors),
     triage_details:objectsArray(input.triage_details,"triage_details",errors),
     coverage_summary:requiredString(input.coverage_summary,"coverage_summary",errors),
     stopping_rationale:requiredString(input.stopping_rationale,"stopping_rationale",errors),
@@ -91,7 +92,7 @@ export function normalizeSearchAudit(input) {
     created_at:isoTimestamp(input.created_at,"created_at",errors,true)
   };
   if(value.started_at && value.completed_at && value.completed_at<value.started_at)errors.push(error("completed_at","before started_at"));
-  if(value.added!==null && value.opportunities_identified!==null && value.added>value.opportunities_identified)errors.push(error("added","cannot exceed identified"));
+  if(value.added!==null && value.opportunities_identified!==null && value.opportunities_added>value.opportunities_identified)errors.push(error("opportunities_added","cannot exceed identified"));
   if(value.sources_checked.some(x=>!present(x.source)))errors.push(error("sources_checked","each source needs identity"));
   return done(errors,value);
 }
