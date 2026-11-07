@@ -143,7 +143,7 @@ async function requireReferences(collection,fields,transport){
 }
 // Bind the existing 84-field logical contract to the four Google worksheets.
 // No spreadsheet creation, credential storage, or writes during initialization.
-export function createGoogleSheetsV2Connection({spreadsheetId,token,client,authorize,strictCompleteRecords=false}={}){
+export function createGoogleSheetsV2Connection({spreadsheetId,token,client,authorize,strictCompleteRecords=true}={}){
  if(typeof spreadsheetId!=="string"||!spreadsheetId.trim())throw Error("spreadsheetId required");
  if(typeof authorize!=="function")throw Error("trusted authorization callback required");
  const plan=buildAirtableProvisioningPlan({workspaceId:"google-sheets",baseName:"Grant Assistant v2"});
