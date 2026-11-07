@@ -10,6 +10,19 @@ const protectedFields={grants:["stage","review_status","operator_notes"],organiz
 export class AdapterError extends Error {constructor(code,message){super(message);this.name="AdapterError";this.code=code;}}
 function check(cond,code,msg){if(!cond)throw new AdapterError(code,msg);}
 function equal(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+function equivalentProviderValue(a,b,codec){
+ if(equal(a,b))return true;
+ if(codec==="boolean")return (a===undefined||a===null||a===false)&&(b===undefined||b===null||b===false);
+ if(codec==="timestamp"&&typeof a==="string"&&typeof b==="string"){
+  const x=Date.parse(a),y=Date.parse(b);
+  return Number.isFinite(x)&&Number.isFinite(y)&&x===y;
+ }
+ if(codec==="json"){
+  const parse=x=>{if(typeof x!=="string")return x;try{return JSON.parse(x);}catch{return x;}};
+  return equal(parse(a),parse(b));
+ }
+ return false;
+}
 function fieldsToLogical(fields,map){
   const result={};for(const [logical,physical] of Object.entries(map))if(Object.hasOwn(fields,physical))result[logical]=fields[physical];
   return result;
@@ -118,7 +131,7 @@ export function createAirtableAdapter({config,transport,schema=null,authorize=nu
     const target=encode(collection,normalized);
     if(existing){
       const old=encode(collection,existing.value);
-      const changes={};for(const [k,v] of Object.entries(target))if(!equal(old[k],v))changes[k]=v;
+      const changes={};for(const [k,v] of Object.entries(target))if(!equivalentProviderValue(old[k],v,def.codecs[Object.keys(def.fields).find(name=>def.fields[name]===k)]))changes[k]=v;
       if(Object.keys(changes).length===0)return {action:"unchanged",logicalId:key,recordId:existing.recordId};
       // Recheck before writing; fail closed on intervening edits. This is not an atomic CAS.
       const fresh=(await rows(collection)).filter(r=>r.value[idField]===key);
