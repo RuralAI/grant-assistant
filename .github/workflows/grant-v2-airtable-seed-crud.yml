@@ -94,3 +94,4 @@ jobs:
             if(!cleanupVerified)throw Error('Synthetic cleanup failed; manual reconciliation required');
           }
           NODE
+# Authenticated adapter gate verification trigger: 2026-11-07
