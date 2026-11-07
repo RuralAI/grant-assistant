@@ -55,3 +55,15 @@ test("C11 Sheets refuses unmapped input rather than silently dropping data",asyn
  await assert.rejects(()=>c.update("grants",first.id,{grant_id:"valid",invented_field:"unmapped"}),/unknown or unmapped fields/);
  assert.equal((await c.list("grants")).records.length,1);
 });
+
+test("C12 Sheets refuses malformed grant values before writes",async()=>{
+ const c=setup();
+ await assert.rejects(()=>c.create("grants",{grant_id:"bad-amount",award_min:-2}),/invalid nonnegative numeric field/);
+ await assert.rejects(()=>c.create("grants",{grant_id:"bad-date",deadline:"2026-02-30"}),/invalid ISO date/);
+ await assert.rejects(()=>c.create("grants",{grant_id:"bad-url",source_url:"javascript:alert(1)"}),/invalid HTTP/);
+ await assert.rejects(()=>c.create("grants",{grant_id:"bad-array",eligible_geographies:"Colorado"}),/invalid string array/);
+ await assert.rejects(()=>c.create("grants",{grant_id:"bad-band",award_min:200,award_max:100}),/award_max less/);
+ const good=await c.create("grants",{grant_id:"good",title:"Synthetic"});
+ await assert.rejects(()=>c.update("grants",good.id,{grant_id:"good",fit_score:-1}),/invalid nonnegative numeric field/);
+ assert.equal((await c.list("grants")).records.length,1);
+});
