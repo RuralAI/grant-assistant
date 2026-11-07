@@ -46,6 +46,18 @@ function validateGrantValues(fields){
  }
  if(fields.award_min!==undefined&&fields.award_max!==undefined&&fields.award_min!==null&&fields.award_max!==null&&fields.award_min>fields.award_max)throw Error("award_max less than award_min");
 }
+async function requireReferences(collection,fields,transport){
+ const refs=collection==="grants"?[
+  ["search_profile_id","organization_profile","profile_id"],
+  ["funder_organization_id","organizations","organization_id"]
+ ]:collection==="search_audit"?[["profile_id","organization_profile","profile_id"]]:[];
+ for(const [field,target,idField] of refs){
+  if(!fields[field])continue;
+  const page=await transport.listRecords({tableId:target,pageSize:10000});
+  if(page.offset)throw Error("incomplete reference scan");
+  if(!page.records.some(r=>r.fields[idField]===fields[field]))throw Error("missing reference: "+field);
+ }
+}
 // Bind the existing 84-field logical contract to the four Google worksheets.
 // No spreadsheet creation, credential storage, or writes during initialization.
 export function createGoogleSheetsV2Connection({spreadsheetId,token,client,authorize}={}){
@@ -94,6 +106,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
     if(fields.operator_notes)throw Error("agent cannot set operator notes");
    }
    const payload=collection==="grants"?{stage:"possible",review_status:"Needs Research",...fields}:fields;
+   await requireReferences(collection,payload,transport);
    return transport.createRecord({tableId:collection,fields:payload});
   },
   async update(collection,recordId,fields,context){
@@ -111,6 +124,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
     const gate=validateAgentPatch(match.fields,fields);
     if(!gate.ok)throw Error("human-owned grant fields cannot be changed by agent: "+gate.errors.map(e=>e.field).join(", "));
    }
+   await requireReferences(collection,fields,transport);
    return transport.updateRecord({tableId:collection,recordId,fields});
   }
  };
