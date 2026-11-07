@@ -135,3 +135,12 @@ test("C20 strict Sheets write mode rejects incomplete records before provider wr
   assert.equal((await c.list(collection)).records.length,0);
  }
 });
+
+test("C21 strict Sheets create accepts complete organization and validates serialized update",async()=>{
+ const c=createGoogleSheetsV2Connection({spreadsheetId:"test",client,authorize:async()=>({actor:"operator"}),strictCompleteRecords:true});
+ for(const sheet of Object.values(c.sheets))rows.set(sheet.title,[sheet.headers]);
+ const first=await c.create("organizations",{organization_id:"org-1",name:"Synthetic Organization",updated_at:"2026-11-07T12:00:00Z"});
+ await c.update("organizations",first.id,{organization_id:"org-1",name:"Updated Organization"});
+ assert.equal((await c.list("organizations")).records[0].fields.name,"Updated Organization");
+ await assert.rejects(()=>c.update("organizations",first.id,{organization_id:"org-1",contact_email:"invalid-email"}),/VALIDATION:/);
+});
