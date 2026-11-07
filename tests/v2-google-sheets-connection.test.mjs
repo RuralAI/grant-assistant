@@ -21,3 +21,18 @@ test("C05 agent cannot change human review decision or stage",async()=>{const c=
 test("C06 agent cannot create approved grants",async()=>{const c=setup(async()=>true);await assert.rejects(()=>c.create("grants",{grant_id:"g1",review_status:"Approved"}),/human review decision/);assert.equal((await c.list("grants")).records.length,0);});
 
 test("C07 caller actor label does not grant operator authority",async()=>{const c=setup(async()=>true);const first=await c.create("grants",{grant_id:"g1",title:"Synthetic"});await assert.rejects(()=>c.update("grants",first.id,{grant_id:"g1",review_status:"Approved"},{actor:"operator"}),/human-owned/);await assert.rejects(()=>c.create("grants",{grant_id:"g2",review_status:"Approved"},{actor:"operator"}),/human review decision/);});
+
+test("C08 refuses duplicate source identity and canonical URL-cycle",async()=>{
+ const c=setup();
+ await c.create("grants",{grant_id:"g1",source_system:"funder-website",source_record_id:"award-2026",source_url:"https://example.org/funding/",opportunity_cycle:"2026"});
+ await assert.rejects(()=>c.create("grants",{grant_id:"g2",source_system:"funder-website",source_record_id:"award-2026",source_url:"https://other.example/grant"}),/duplicate grant/);
+ await assert.rejects(()=>c.create("grants",{grant_id:"g3",source_url:"https://example.org/funding",opportunity_cycle:"2026"}),/duplicate grant/);
+ await c.create("grants",{grant_id:"g4",source_url:"https://example.org/funding",opportunity_cycle:"2027"});
+ assert.equal((await c.list("grants")).records.length,2);
+});
+test("C09 Search Audit is append-only for operator and agent",async()=>{
+ const c=setup();
+ const r=await c.create("search_audit",{run_id:"run-1"});
+ await assert.rejects(()=>c.update("search_audit",r.id,{run_id:"run-1"}),/APPEND_ONLY/);
+ assert.equal((await c.list("search_audit")).records.length,1);
+});
