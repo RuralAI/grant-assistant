@@ -47,3 +47,11 @@ test("C10 Sheets grants default to safe review state and reject invalid controls
  await assert.rejects(()=>c.create("grants",{grant_id:"bad-2",review_status:"Autopproved"}),/invalid grant review_status/);
  await assert.rejects(()=>c.update("grants",created.id,{stage:"invented"}),/invalid grant stage/);
 });
+
+test("C11 Sheets refuses unmapped input rather than silently dropping data",async()=>{
+ const c=setup();
+ await assert.rejects(()=>c.create("grants",{grant_id:"bad",invented_field:"unmapped"}),/unknown or unmapped fields/);
+ const first=await c.create("grants",{grant_id:"valid",title:"Synthetic"});
+ await assert.rejects(()=>c.update("grants",first.id,{grant_id:"valid",invented_field:"unmapped"}),/unknown or unmapped fields/);
+ assert.equal((await c.list("grants")).records.length,1);
+});
