@@ -37,3 +37,4 @@ jobs:
           if(!result.ok||result.collections.length!==4)throw Error('Repository inspection failed');
           console.log(JSON.stringify({status:'PASS',mode:'read_only_authenticated_repository_http',collections:4,fields:84}));
           NODE
+# Authenticated adapter gate verification trigger: 2026-11-07
