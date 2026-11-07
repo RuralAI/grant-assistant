@@ -1,7 +1,8 @@
 import {buildAirtableProvisioningPlan} from "./airtable-provisioning.mjs";
 import {createSheetsRowTransport} from "./google-sheets-row-transport.mjs";
 import {createGoogleSheetsHttpClient} from "./google-sheets-http.mjs";
-import {duplicateKey,validateAgentPatch} from "./normalize.mjs";
+import {duplicateKey,validateAgentPatch,normalizeGrant,normalizeProfile} from "./normalize.mjs";
+import {normalizeOrganization,normalizeSearchAudit} from "./records.mjs";
 function grantUrlCycleKey(grant){
  if(typeof grant.source_url!=="string"||!grant.source_url.trim())return null;
  try{
@@ -45,6 +46,14 @@ function validateGrantValues(fields){
   if(v!==undefined&&v!==null&&(!Array.isArray(v)||v.some(x=>typeof x!=="string")))throw Error("invalid string array: "+name);
  }
  if(fields.award_min!==undefined&&fields.award_max!==undefined&&fields.award_min!==null&&fields.award_max!==null&&fields.award_min>fields.award_max)throw Error("award_max less than award_min");
+}
+const collectionValidators={organization_profile:normalizeProfile,organizations:normalizeOrganization,grants:normalizeGrant,search_audit:normalizeSearchAudit};
+function validateProvidedFields(collection,fields){
+ const validator=collectionValidators[collection];
+ if(!validator)return;
+ const result=validator(fields);
+ const failures=result.errors.filter(e=>Object.hasOwn(fields,e.field));
+ if(failures.length)throw Error("invalid collection values: "+failures.map(e=>e.field+" "+e.reason).join("; "));
 }
 function validateProfileValues(fields){
  const arrays=["issue_areas","search_geographies","beneficiaries","other_eligibility_barriers","extra_search_terms"];
@@ -143,6 +152,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    assertKnownFields(collection,fields,sheets);
    if(collection==="grants"){validateGrantControls(fields);validateGrantValues(fields);}
    validateSharedValues(collection,fields);
+   validateProvidedFields(collection,fields);
    const identity=sheets[collection]?.identityField;
    if(!identity||typeof fields?.[identity]!=="string"||!fields[identity].trim())throw Error("logical identity required");
    const existing=await transport.listRecords({tableId:collection,pageSize:10000});
@@ -194,6 +204,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
     )))throw Error("duplicate grant source identity or URL and cycle");
    }
    validateSharedValues(collection,merged);
+   validateProvidedFields(collection,fields);
    await requireReferences(collection,merged,transport);
    return transport.updateRecord({tableId:collection,recordId,fields});
   }
