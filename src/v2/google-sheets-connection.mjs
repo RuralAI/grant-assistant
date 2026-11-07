@@ -101,7 +101,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    if(!permission)throw Error("write not authorized");
    if(collection==="search_audit")throw Error("APPEND_ONLY: search audit cannot be updated");
    assertKnownFields(collection,fields,sheets);
-   if(collection==="grants")validateGrantControls(fields);
+   if(collection==="grants"){validateGrantControls(fields);validateGrantValues(fields);}
    const operator=permission!==true&&permission?.actor==="operator";
    if(collection==="grants"&&!operator){
     const current=await transport.listRecords({tableId:collection,pageSize:10000});
