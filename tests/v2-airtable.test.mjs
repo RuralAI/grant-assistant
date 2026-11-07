@@ -32,10 +32,16 @@ test("append-only audit prevents update",async()=>{const auditConfig={baseId,col
 test("caller cannot self-assert operator with boolean authorization",async()=>{const f=fixture();await f.adapter.upsert("grants",grant);await assert.rejects(()=>f.adapter.upsert("grants",{grant_id:"g1",stage:"active"},{actor:"operator"}),e=>e.code==="AUTH");assert.equal(f.records[0].fields.stage,"possible");});
 
 test("ambiguous Airtable create is reconciled by logical ID on retry",async()=>{
- const f=fixture();
- const original=f.adapter.upsert.bind(f.adapter);
- await original("grants",grant);
- const retry=await original("grants",grant);
+ let records=[],writes=0;
+ const transport={
+  async listRecords(){return {records:structuredClone(records)};},
+  async createRecord({fields}){writes++;records.push({id:"rec1",fields});throw Error("network response lost after commit");},
+  async updateRecord(){throw Error("unexpected update");}
+ };
+ const adapter=createAirtableAdapter({config,transport,schema,authorize});
+ await assert.rejects(()=>adapter.upsert("grants",grant),/response lost/);
+ const retry=await adapter.upsert("grants",grant);
  assert.equal(retry.action,"unchanged");
- assert.equal(f.writes,1);
+ assert.equal(writes,1);
+ assert.equal(records.length,1);
 });
