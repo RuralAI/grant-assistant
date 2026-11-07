@@ -92,7 +92,7 @@ export function normalizeSearchAudit(input) {
     created_at:isoTimestamp(input.created_at,"created_at",errors,true)
   };
   if(value.started_at && value.completed_at && value.completed_at<value.started_at)errors.push(error("completed_at","before started_at"));
-  if(value.added!==null && value.opportunities_identified!==null && value.opportunities_added>value.opportunities_identified)errors.push(error("opportunities_added","cannot exceed identified"));
+  if(value.opportunities_added!==null && value.opportunities_identified!==null && value.opportunities_added>value.opportunities_identified)errors.push(error("opportunities_added","cannot exceed identified"));
   if(value.sources_checked.some(x=>!present(x.source)))errors.push(error("sources_checked","each source needs identity"));
   return done(errors,value);
 }
