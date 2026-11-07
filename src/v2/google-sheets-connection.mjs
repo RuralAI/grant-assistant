@@ -8,7 +8,7 @@ function grantUrlCycleKey(grant){
   const url=new URL(grant.source_url);
   if(!["https:","http:"].includes(url.protocol))return null;
   url.hash="";
-  return "url:"+url.href.replace(/\\/$/,"")+":cycle:"+String(grant.opportunity_cycle??"").trim().toLowerCase();
+  return "url:"+url.href.replace(/\/$/,"")+":cycle:"+String(grant.opportunity_cycle??"").trim().toLowerCase();
  }catch{return null;}
 }
 // Bind the existing 84-field logical contract to the four Google worksheets.
