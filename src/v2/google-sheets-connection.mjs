@@ -55,6 +55,13 @@ function validateProvidedFields(collection,fields){
  const failures=result.errors.filter(e=>Object.hasOwn(fields,e.field));
  if(failures.length)throw Error("invalid collection values: "+failures.map(e=>e.field+" "+e.reason).join("; "));
 }
+export function validateCompleteSheetsRecord(collection,fields){
+ const validator=collectionValidators[collection];
+ if(!validator)throw Error("unknown collection");
+ const result=validator(fields);
+ if(!result.ok)throw Error("VALIDATION: "+result.errors.map(e=>e.field+" "+e.reason).join("; "));
+ return result.value;
+}
 function validateProfileValues(fields){
  const arrays=["issue_areas","search_geographies","beneficiaries","other_eligibility_barriers","extra_search_terms"];
  for(const name of arrays){
