@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {normalizeOrganization,normalizeSearchAudit,normalizeFunderRestriction,normalizeOrganizationGrantRole} from "../src/v2/records.mjs";
 const t="2026-11-02T12:00:00Z";
 const org={organization_id:"org-1",name:"Example Funder",updated_at:t};
-const audit={run_id:"run-1",started_at:t,completed_at:t,profile_id:"profile-1",mode:"discovery",queries_run:["rural grants"],sources_checked:[{source:"funder.example",coverage:"searched"}],opportunities_identified:2,added:1,scored:1,deferred:1,coverage_summary:"Checked sources",stopping_rationale:"Search completed",gaps:[],next_searches:[],carried_forward:[],created_at:t};
+const audit={audit_label:"Test run",run_id:"run-1",started_at:t,completed_at:t,profile_id:"profile-1",mode:"discovery",queries_run:["rural grants"],sources_checked:[{source:"funder.example",coverage:"searched"}],opportunities_identified:2,opportunities_added:1,opportunities_scored:1,opportunities_deferred:1,coverage_summary:"Checked sources",stopping_rationale:"Search completed",gaps:[],next_searches:[],carried_forward:[],created_at:t};
 const restriction={restriction_id:"restriction-1",organization_id:"org-1",profile_id:"profile-1",reason:"Existing grant commitment",status:"active",effective_from:"2026-01-01",expires_on:"2026-12-31"};
 const role={role_id:"role-1",organization_id:"org-1",grant_id:"grant-1",role:"partner",verification_status:"unverified"};
 test("organization normalizes name and preserves durable identity",()=>{const r=normalizeOrganization({...org,name:" Example Funder "});assert.equal(r.ok,true);assert.equal(r.value.name,"Example Funder");assert.equal(r.value.organization_id,"org-1");});
@@ -11,7 +11,7 @@ test("organization rejects missing name and invalid URL",()=>assert.equal(normal
 test("organization rejects malformed email",()=>assert.equal(normalizeOrganization({...org,contact_email:"not-an-email"}).ok,false));
 test("audit accepts complete run with zero gaps",()=>{const r=normalizeSearchAudit(audit);assert.equal(r.ok,true);assert.equal(r.value.queries_run.length,1);});
 test("audit rejects missing source coverage",()=>assert.equal(normalizeSearchAudit({...audit,sources_checked:[{}]}).ok,false));
-test("audit rejects negative counts and impossible added total",()=>assert.equal(normalizeSearchAudit({...audit,added:3,scored:-1}).ok,false));
+test("audit rejects negative counts and impossible added total",()=>assert.equal(normalizeSearchAudit({...audit,opportunities_added:3,opportunities_scored:-1}).ok,false));
 test("audit rejects completion preceding start",()=>assert.equal(normalizeSearchAudit({...audit,completed_at:"2026-11-01T12:00:00Z"}).ok,false));
 test("restriction preserves reason and expiration",()=>assert.equal(normalizeFunderRestriction(restriction).ok,true));
 test("restriction rejects inverted date range",()=>assert.equal(normalizeFunderRestriction({...restriction,expires_on:"2025-12-31"}).ok,false));
