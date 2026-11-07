@@ -62,6 +62,18 @@ export function validateCompleteSheetsRecord(collection,fields){
  if(!result.ok)throw Error("VALIDATION: "+result.errors.map(e=>e.field+" "+e.reason).join("; "));
  return result.value;
 }
+function decodeSheetsFields(collection,fields){
+ const jsonNames=new Set(["issue_areas","search_geographies","beneficiaries","funding_preferences","other_eligibility_barriers","programs","extra_search_terms","eligible_geographies","queries_run","sources_checked","triage_details","gaps","next_searches","carried_forward","updated_records"]);
+ const numericNames=new Set(["founded_year","audited_financial_years","annual_budget","preferred_award_min","preferred_award_max","award_min","award_max","fit_score","opportunities_identified","opportunities_added","opportunities_scored","opportunities_deferred"]);
+ const out={...fields};
+ for(const [name,value] of Object.entries(out)){
+  if(typeof value!=="string")continue;
+  if(jsonNames.has(name)){try{out[name]=JSON.parse(value);}catch{throw Error("invalid serialized JSON: "+name);}}
+  else if(numericNames.has(name)&&value.trim()!==""){const n=Number(value);if(!Number.isFinite(n))throw Error("invalid serialized number: "+name);out[name]=n;}
+  else if(name==="federal_search_enabled"&&["true","false"].includes(value.toLowerCase()))out[name]=value.toLowerCase()==="true";
+ }
+ return out;
+}
 function validateProfileValues(fields){
  const arrays=["issue_areas","search_geographies","beneficiaries","other_eligibility_barriers","extra_search_terms"];
  for(const name of arrays){
@@ -179,7 +191,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
     if(fields.operator_notes)throw Error("agent cannot set operator notes");
    }
    const payload=collection==="grants"?{stage:"possible",review_status:"Needs Research",...fields}:fields;
-   if(strictCompleteRecords)validateCompleteSheetsRecord(collection,payload);
+   if(strictCompleteRecords)validateCompleteSheetsRecord(collection,decodeSheetsFields(collection,payload));
    await requireReferences(collection,payload,transport);
    return transport.createRecord({tableId:collection,fields:payload});
   },
@@ -213,7 +225,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    }
    validateSharedValues(collection,merged);
    validateProvidedFields(collection,fields);
-   if(strictCompleteRecords)validateCompleteSheetsRecord(collection,merged);
+   if(strictCompleteRecords)validateCompleteSheetsRecord(collection,decodeSheetsFields(collection,merged));
    await requireReferences(collection,merged,transport);
    return transport.updateRecord({tableId:collection,recordId,fields});
   }
