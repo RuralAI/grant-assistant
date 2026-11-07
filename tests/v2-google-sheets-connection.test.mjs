@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createGoogleSheetsV2Connection} from "../src/v2/google-sheets-connection.mjs";
+import {createGoogleSheetsV2Connection,validateCompleteSheetsRecord} from "../src/v2/google-sheets-connection.mjs";
 const rows=new Map();
 const client={
  readRows:async({sheetTitle})=>structuredClone(rows.get(sheetTitle)),
@@ -118,4 +118,11 @@ test("C18 Sheets audit structured fields and source identities fail closed",asyn
  await assert.rejects(()=>c.create("search_audit",{run_id:"bad-2",sources_checked:["website"]}),/invalid audit object array/);
  await assert.rejects(()=>c.create("search_audit",{run_id:"bad-3",sources_checked:[{name:"no identity"}]}),/audit source identity required/);
  assert.equal((await c.list("search_audit")).records.length,0);
+});
+
+test("C19 complete-record validation enforces required fields for all four collections",()=>{
+ for(const [collection,identity] of [["organization_profile","profile_id"],["organizations","organization_id"],["grants","grant_id"],["search_audit","run_id"]]){
+  assert.throws(()=>validateCompleteSheetsRecord(collection,{[identity]:"test"}),/VALIDATION:/);
+ }
+ assert.throws(()=>validateCompleteSheetsRecord("nonexistent",{}),/unknown collection/);
 });
