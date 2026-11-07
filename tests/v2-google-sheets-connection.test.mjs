@@ -92,3 +92,12 @@ test("C15 Sheets rejects missing references on update without changing the row",
  await assert.rejects(()=>c.update("grants",first.id,{grant_id:"g-one",search_profile_id:"missing"}),/missing reference/);
  assert.equal((await c.list("grants")).records[0].fields.search_profile_id,undefined);
 });
+
+test("C16 Sheets validates organization URLs and audit counts before writing",async()=>{
+ const c=setup();
+ await assert.rejects(()=>c.create("organizations",{organization_id:"o-invalid",website_url:"javascript:alert(1)"}),/invalid HTTP/);
+ await assert.rejects(()=>c.create("search_audit",{run_id:"r-invalid",opportunities_added:-1}),/invalid nonnegative count/);
+ await assert.rejects(()=>c.create("search_audit",{run_id:"r-invalid-time",started_at:"yesterday"}),/invalid timezone timestamp/);
+ assert.equal((await c.list("organizations")).records.length,0);
+ assert.equal((await c.list("search_audit")).records.length,0);
+});
