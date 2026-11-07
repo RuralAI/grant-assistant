@@ -13,6 +13,14 @@ function grantUrlCycleKey(grant){
 }
 const STAGES=new Set(["possible","active","awarded","watchlist","archived"]);
 const REVIEWS=new Set(["Pending Review","Approved","Rejected","Needs Research"]);
+function assertKnownFields(collection,fields,sheets){
+ if(!fields||typeof fields!=="object"||Array.isArray(fields))throw Error("record object required");
+ const sheet=sheets[collection];
+ if(!sheet)throw Error("unknown collection");
+ const allowed=new Set(sheet.headers);
+ const unknown=Object.keys(fields).filter(k=>!allowed.has(k));
+ if(unknown.length)throw Error("unknown or unmapped fields: "+unknown.join(", "));
+}
 function validateGrantControls(fields){
  if(fields.stage!==undefined&&!STAGES.has(fields.stage))throw Error("invalid grant stage");
  if(fields.review_status!==undefined&&!REVIEWS.has(fields.review_status))throw Error("invalid grant review_status");
@@ -44,6 +52,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    const permission=await authorize({action:"create",collection,fields,context});
    if(!permission)throw Error("write not authorized");
    const operator=permission!==true&&permission?.actor==="operator";
+   assertKnownFields(collection,fields,sheets);
    if(collection==="grants")validateGrantControls(fields);
    const identity=sheets[collection]?.identityField;
    if(!identity||typeof fields?.[identity]!=="string"||!fields[identity].trim())throw Error("logical identity required");
@@ -70,6 +79,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    const permission=await authorize({action:"update",collection,recordId,fields,context});
    if(!permission)throw Error("write not authorized");
    if(collection==="search_audit")throw Error("APPEND_ONLY: search audit cannot be updated");
+   assertKnownFields(collection,fields,sheets);
    if(collection==="grants")validateGrantControls(fields);
    const operator=permission!==true&&permission?.actor==="operator";
    if(collection==="grants"&&!operator){
