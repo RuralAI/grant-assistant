@@ -131,7 +131,7 @@ async function requireReferences(collection,fields,transport){
 }
 // Bind the existing 84-field logical contract to the four Google worksheets.
 // No spreadsheet creation, credential storage, or writes during initialization.
-export function createGoogleSheetsV2Connection({spreadsheetId,token,client,authorize}={}){
+export function createGoogleSheetsV2Connection({spreadsheetId,token,client,authorize,strictCompleteRecords=false}={}){
  if(typeof spreadsheetId!=="string"||!spreadsheetId.trim())throw Error("spreadsheetId required");
  if(typeof authorize!=="function")throw Error("trusted authorization callback required");
  const plan=buildAirtableProvisioningPlan({workspaceId:"google-sheets",baseName:"Grant Assistant v2"});
@@ -179,6 +179,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
     if(fields.operator_notes)throw Error("agent cannot set operator notes");
    }
    const payload=collection==="grants"?{stage:"possible",review_status:"Needs Research",...fields}:fields;
+   if(strictCompleteRecords)validateCompleteSheetsRecord(collection,payload);
    await requireReferences(collection,payload,transport);
    return transport.createRecord({tableId:collection,fields:payload});
   },
@@ -212,6 +213,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    }
    validateSharedValues(collection,merged);
    validateProvidedFields(collection,fields);
+   if(strictCompleteRecords)validateCompleteSheetsRecord(collection,merged);
    await requireReferences(collection,merged,transport);
    return transport.updateRecord({tableId:collection,recordId,fields});
   }
