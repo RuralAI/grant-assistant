@@ -216,14 +216,14 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    if(!target)throw Error("record not found");
    const merged={...target.fields,...fields};
    if(collection==="grants"){
-    validateGrantValues(merged);
+    validateGrantValues(decodeSheetsFields(collection,merged));
     const key=duplicateKey(merged),urlKey=grantUrlCycleKey(merged);
     if(currentRows.records.some(r=>r.id!==recordId&&(
      (key!==null&&duplicateKey(r.fields)===key)||
      (urlKey!==null&&grantUrlCycleKey(r.fields)===urlKey)
     )))throw Error("duplicate grant source identity or URL and cycle");
    }
-   validateSharedValues(collection,merged);
+   validateSharedValues(collection,decodeSheetsFields(collection,merged));
    validateProvidedFields(collection,fields);
    if(strictCompleteRecords)validateCompleteSheetsRecord(collection,decodeSheetsFields(collection,merged));
    await requireReferences(collection,merged,transport);
