@@ -18,6 +18,7 @@ export function createSheetsRowTransport({spreadsheetId,sheets,client}={}){
  const resolve=(tableId)=>{const sheet=sheets[tableId];if(!sheet||!sheet.title||!Array.isArray(sheet.headers))fail("CONFIG","unknown sheet mapping");inspectSheetHeaders({headers:sheet.headers,requiredFields:sheet.requiredFields||[]});return sheet;};
  const encode=(fields,headers)=>headers.map(h=>fields[h]===undefined||fields[h]===null?"":typeof fields[h]==="object"?JSON.stringify(fields[h]):fields[h]);
  const decode=(values,headers)=>Object.fromEntries(headers.flatMap((h,i)=>values[i]===undefined||values[i]===""?[]:[[h,values[i]]]));
+ const assertValues=(fields,headers)=>{const unexpected=Object.keys(fields||{}).filter(k=>!headers.includes(k));if(unexpected.length)fail("SCHEMA","unmapped fields: "+unexpected.join(", "));};
  const physical=(tableId,rowNumber)=>"sheet:"+tableId+":"+rowNumber;
  const parse=(id,tableId)=>{const prefix="sheet:"+tableId+":";if(typeof id!=="string"||!id.startsWith(prefix))fail("IDENTITY","record belongs to different sheet");const n=Number(id.slice(prefix.length));if(!Number.isSafeInteger(n)||n<2)fail("IDENTITY","invalid sheet row");return n;};
  return {
@@ -42,6 +43,7 @@ export function createSheetsRowTransport({spreadsheetId,sheets,client}={}){
    const result=await client.readRows({spreadsheetId,sheetTitle:sheet.title});
    if(!Array.isArray(result)||!Array.isArray(result[0]))fail("SCHEMA","header row missing");
    if(!inspectSheetHeaders({headers:result[0],requiredFields:sheet.headers}).ok)fail("SCHEMA","headers changed");
+   assertValues(fields,result[0]);
    const row=encode(fields,result[0]);
    const response=await client.appendRow({spreadsheetId,sheetTitle:sheet.title,values:row});
    if(!Number.isSafeInteger(response?.rowNumber)||response.rowNumber<2)fail("RECONCILE","append row number not confirmed; inspect before retry");
@@ -56,6 +58,7 @@ export function createSheetsRowTransport({spreadsheetId,sheets,client}={}){
    const identityField=sheet.identityField;
    if(!identityField||typeof fields[identityField]!=="string"||!fields[identityField].trim())fail("IDENTITY","logical identity required for safe update");
    if(existing[identityField]!==fields[identityField])fail("CONFLICT","row moved or logical identity changed; re-read before update");
+   assertValues(fields,rows[0]);
    const merged={...existing,...fields};
    await client.updateRow({spreadsheetId,sheetTitle:sheet.title,rowNumber,values:encode(merged,rows[0])});
    return {id:recordId,fields:merged};
