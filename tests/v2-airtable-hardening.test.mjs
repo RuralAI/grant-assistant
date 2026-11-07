@@ -16,3 +16,11 @@ test("HTTP transport retries 429 and does not log credentials",async()=>{let cal
 test("HTTP transport does not retry unauthorized",async()=>{let calls=0;const transport=createAirtableHttpTransport({token:"private",fetchImpl:async()=>{calls++;return {ok:false,status:401,headers:{get:()=>null}};}});await assert.rejects(()=>transport.listRecords({baseId:"appTEST",tableId:"tblORG"}),e=>e instanceof AirtableHttpError&&e.status===401);assert.equal(calls,1);});
 test("HTTP transport uses PATCH for update",async()=>{let method;const transport=createAirtableHttpTransport({token:"private",fetchImpl:async(_url,opts)=>{method=opts.method;return {ok:true,json:async()=>({id:"rec1"})};}});await transport.updateRecord({baseId:"appTEST",tableId:"tblORG",recordId:"rec1",fields:{fldNAME:"Test"}});assert.equal(method,"PATCH");});
 test("pre-write recheck catches intervening human edit",async()=>{let calls=0,writes=0;const transport={listRecords:async()=>{calls++;return {records:[{id:"rec1",fields:{fldID:"org1",fldNAME:calls===1?"Original":"Human edit",fldTIME:"2026-11-02T12:00:00Z"}}]};},createRecord:async()=>{writes++;},updateRecord:async()=>{writes++;}};const adapter=createAirtableAdapter({config,transport,schema,authorize:async()=>true});await assert.rejects(()=>adapter.upsert("organizations",{organization_id:"org1",name:"Automated change"}),e=>e.code==="CONFLICT");assert.equal(writes,0);});
+
+test("Airtable rejects unmapped input without any provider write",async()=>{
+ let writes=0;
+ const transport={listRecords:async()=>({records:[]}),createRecord:async()=>{writes++;},updateRecord:async()=>{writes++;}};
+ const adapter=createAirtableAdapter({config,transport,schema,authorize:async()=>true});
+ await assert.rejects(()=>adapter.upsert("organizations",{organization_id:"org1",name:"Synthetic",unmapped_property:"must reject"}),e=>e.code==="VALIDATION");
+ assert.equal(writes,0);
+});
