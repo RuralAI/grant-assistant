@@ -46,6 +46,28 @@ function validateGrantValues(fields){
  }
  if(fields.award_min!==undefined&&fields.award_max!==undefined&&fields.award_min!==null&&fields.award_max!==null&&fields.award_min>fields.award_max)throw Error("award_max less than award_min");
 }
+function validateSharedValues(collection,fields){
+ const urls=collection==="organizations"?["website_url","source_url"]:collection==="organization_profile"?["website_url"]:collection==="grants"?["source_url","application_url","funder_url"]:[];
+ for(const name of urls){
+  const v=fields[name];if(v===undefined||v===null||v==="")continue;
+  if(typeof v!=="string")throw Error("invalid HTTP(S) URL: "+name);
+  try{const u=new URL(v);if(!["http:","https:"].includes(u.protocol))throw Error();}
+  catch{throw Error("invalid HTTP(S) URL: "+name);}
+ }
+ const timestamps=collection==="organizations"?["updated_at"]:collection==="search_audit"?["started_at","completed_at","created_at"]:collection==="organization_profile"?["updated_at"]:[];
+ for(const name of timestamps){
+  const v=fields[name];if(v===undefined||v===null||v==="")continue;
+  if(typeof v!=="string"||!/^\\d{4}-\\d{2}-\\d{2}T.*(?:Z|[+-]\\d{2}:\\d{2})$/.test(v)||!Number.isFinite(Date.parse(v)))throw Error("invalid timezone timestamp: "+name);
+ }
+ if(collection==="search_audit"){
+  for(const name of ["opportunities_identified","opportunities_added","opportunities_scored","opportunities_deferred"]){
+   const v=fields[name];if(v===undefined||v===null||v==="")continue;
+   if(typeof v!=="number"||!Number.isSafeInteger(v)||v<0)throw Error("invalid nonnegative count: "+name);
+  }
+  if(fields.started_at&&fields.completed_at&&Date.parse(fields.completed_at)<Date.parse(fields.started_at))throw Error("completed_at before started_at");
+  if(fields.opportunities_added!==undefined&&fields.opportunities_identified!==undefined&&fields.opportunities_added>fields.opportunities_identified)throw Error("opportunities_added exceeds identified");
+ }
+}
 async function requireReferences(collection,fields,transport){
  const refs=collection==="grants"?[
   ["search_profile_id","organization_profile","profile_id"],
@@ -87,6 +109,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
    const operator=permission!==true&&permission?.actor==="operator";
    assertKnownFields(collection,fields,sheets);
    if(collection==="grants"){validateGrantControls(fields);validateGrantValues(fields);}
+   validateSharedValues(collection,fields);
    const identity=sheets[collection]?.identityField;
    if(!identity||typeof fields?.[identity]!=="string"||!fields[identity].trim())throw Error("logical identity required");
    const existing=await transport.listRecords({tableId:collection,pageSize:10000});
@@ -137,6 +160,7 @@ export function createGoogleSheetsV2Connection({spreadsheetId,token,client,autho
      (urlKey!==null&&grantUrlCycleKey(r.fields)===urlKey)
     )))throw Error("duplicate grant source identity or URL and cycle");
    }
+   validateSharedValues(collection,merged);
    await requireReferences(collection,merged,transport);
    return transport.updateRecord({tableId:collection,recordId,fields});
   }
